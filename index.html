@@ -109,7 +109,7 @@ kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--border);border
 <body>
 <header>
   <h1>SQL-Trainer · Pokédex</h1>
-  <span class="sub">Relationale Datenbanken – Lektion 6 · alles Gelernte, ohne Datebänkli</span>
+  <span class="sub">Relationale Datenbanken</span>
   <span class="spacer"></span>
   <button id="btnResetDb" title="Stellt die Tabelle pokemon in den Ausgangszustand zurück">Datenbank zurücksetzen</button>
   <button id="btnResetProg" title="Löscht den gespeicherten Fortschritt">Fortschritt löschen</button>
@@ -142,6 +142,7 @@ var initSqlJs = function (moduleConfig) {
     if (initSqlJsPromise){
       return initSqlJsPromise;
     }
+    // If we're here, we've never called this function before
     initSqlJsPromise = new Promise(function (resolveModule, reject) {
 
         // We are modularizing this manually because the current modularize setting in Emscripten has some issues:
@@ -353,7 +354,7 @@ const SCHEMA_SQL = `CREATE TABLE pokemon (
 // mod-Aufgaben: {id, lvl, type:'mod', q, hint, sol, check(diff, db) -> null | text}
 const STATIONS = [
 { key:'A', title:'Abfragen lesen', sub:'ohne zu tippen',
-  intro:'Hier wird nichts ausgeführt. Lesen Sie die Abfrage und entscheiden Sie, was herauskommt – so wie bei der «Abfrage des Tages». Die Tabelle <code>pokemon</code> hat <strong>151 Zeilen</strong>; das Schema steht unten. Zählen und Gruppieren kommt erst in Station D.',
+  intro:'Hier wird nichts ausgeführt. Lesen Sie die Abfrage und entscheiden Sie, was herauskommt. Die Tabelle <code>pokemon</code> hat <strong>151 Zeilen</strong>; das Schema steht unten. Zählen und Gruppieren kommt erst in Station D.',
   tasks:[
    {id:'A1',type:'mc',lvl:'Basis',q:'Welche <strong>Spalten</strong> hat die Ergebnistabelle?',
     code:"SELECT name, kp FROM pokemon WHERE typ1 = 'Feuer';",
