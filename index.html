@@ -408,7 +408,7 @@ const STATIONS = [
     hint:"Aufsteigend ist die Voreinstellung von ORDER BY – man kann ASC schreiben, muss aber nicht.", sol:"SELECT name, gewicht_kg FROM pokemon ORDER BY gewicht_kg LIMIT 3", sorted:{col:1,dir:'asc'}},
    {id:'C3',lvl:'Basis',q:'Alle Pokémon vom Typ <code>Käfer</code> (Spalte <code>typ1</code>) mit <strong>Name und Verteidigung</strong>, <strong>alphabetisch</strong> nach Name sortiert.',
     hint:"Erst WHERE, dann ORDER BY – in dieser Reihenfolge.", sol:"SELECT name, verteidigung FROM pokemon WHERE typ1 = 'Käfer' ORDER BY name", sorted:{col:0,dir:'asc'}},
-   {id:'C4',lvl:'Profi',q:'Die <strong>4 schnellsten</strong> Pokémon. Die Ergebnistabelle soll genau zwei Spalten haben, die <code>pokemon</code> und <code>geschwindigkeit</code> heissen.',
+   {id:'C4',lvl:'Profi',q:'Name und Geschwindgkeit der <strong>4 schnellsten</strong> Pokémon. Die Ergebnistabelle soll genau zwei Spalten haben, die <code>pokemon</code> und <code>geschwindigkeit</code> heissen.',
     hint:"Spalten umbenennen geht mit AS:  SELECT name AS pokemon, ...", sol:"SELECT name AS pokemon, tempo AS geschwindigkeit FROM pokemon ORDER BY tempo DESC LIMIT 4", sorted:{col:1,dir:'desc'}, cols:['pokemon','geschwindigkeit']},
   ]},
 { key:'D', title:'Zählen und gruppieren', sub:'COUNT · MIN/MAX/AVG · GROUP BY · HAVING',
