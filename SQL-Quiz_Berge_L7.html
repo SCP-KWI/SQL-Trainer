@@ -583,9 +583,8 @@ function areaCls(a){ return a.toLowerCase(); }
 function renderStart(){
   document.getElementById('btnRestart').hidden=true; $timer.hidden=true;
   $main.innerHTML=`<div class="card"><h2>Kurzquiz: Was sitzt schon?</h2>
-  <p><strong>10 Fragen, etwa 8 Minuten.</strong> Sie arbeiten allein und ohne Datebänkli. Punkte und Rückmeldung gibt es <strong>erst am Schluss</strong>, nicht nach jeder Frage.</p>
-  <p>Grundlage ist die Tabelle <code>berg</code> mit 10 Zeilen. Sie steht bei jeder Frage daneben (auf kleinen Bildschirmen oben) und reicht, um jede Abfrage von Hand auszuwerten.</p>
-  <p>Drei Arten von Fragen: <span class="tag lesen">Lesen</span> eine Abfrage lesen und das Ergebnis bestimmen · <span class="tag schreiben">Schreiben</span> eine Abfrage selbst schreiben · <span class="tag theorie">Theorie</span> wissen, was ein Baustein tut.</p>
+  <p><strong>10 Fragen, etwa 8 Minuten.</strong> Punkte und Rückmeldung gibt es <strong>erst am Schluss</strong>, nicht nach jeder Frage.</p>
+  <p>Grundlage ist die Tabelle <code>berg</code> mit 10 Zeilen. Sie steht bei jeder Frage daneben (auf kleinen Bildschirmen oben)</p>
   <p class="small">Beim Schreiben können Sie Ihre Abfrage mit <strong>Ausführen</strong> laufen lassen und das Ergebnis ansehen, <strong>höchstens zweimal pro Frage</strong>. Ob es das richtige ist, sagt erst die Auswertung am Schluss. Geprüft wird das Ergebnis, nicht der Wortlaut. Mit <strong>Zurück</strong> können Sie jede Antwort bis zur Abgabe ändern.</p>
   <div class="navbar"><button class="primary" id="btnStart">Quiz starten</button><span class="small">Die Zeit läuft ab dem Klick.</span></div></div>`;
   document.getElementById('btnStart').onclick=()=>{ S.started=true; S.startedAt=Date.now(); S.cur=0; save(); renderQuestion(0); };
