@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JOIN-Visualizer – buch und autorin</title>
+<style>
+:root{
+  --navy:#1A3260; --blue:#4590B8; --ink:#1f2430; --muted:#6b7280;
+  --bg:#f3f5f9; --card:#ffffff; --warm:#fff7e8; --green:#2e8b57; --red:#c0392b; --orange:#e08a2e;
+  --border:#dbe1ea; --code:#f6f8fb; --mono:"JetBrains Mono","Fira Mono",Consolas,"Courier New",monospace;
+  --c1:#4590B8; --c2:#2e8b57; --c3:#e08a2e; --c0:#9aa3ad;
+  --scale:1;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:"Gill Sans","Gill Sans MT",Calibri,"Segoe UI",system-ui,sans-serif;font-size:calc(16px * var(--scale));line-height:1.45}
+header{background:var(--navy);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:1.25em;margin:0;font-weight:600;letter-spacing:.3px}
+header .sub{opacity:.8;font-size:.875em}
+header .spacer{flex:1}
+header button{background:transparent;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:6px 12px;cursor:pointer;font:inherit;font-size:.875em}
+header button:hover,header button.on{background:rgba(255,255,255,.16)}
+.layout{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;padding:20px 24px 40px;max-width:1280px;margin:0 auto;align-items:start}
+.layout > *{min-width:0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:16px}
+.card h2{margin:0 0 6px;color:var(--navy);font-size:1.3em}
+.card h3{margin:0 0 8px;font-size:1.05em;color:var(--navy);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card p{margin:6px 0}
+.tag{font-size:.7em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:#e3ecf5;color:var(--navy)}
+code,pre{font-family:var(--mono)}
+p code,li code,.why code,.note code,td code,h3 code,.step-text code{font-size:.92em;background:var(--code);padding:1px 5px;border-radius:4px;color:var(--navy)}
+pre.sql{margin:8px 0 12px;background:var(--code);padding:10px 12px;border-radius:8px;font-size:1em;color:var(--navy);white-space:pre-wrap;border-left:3px solid var(--blue);line-height:1.45}
+pre.sql .hl{background:#fde9d9;color:#9a3b12;border-radius:3px;padding:0 3px;font-weight:700}
+pre.sql .hl.ok{background:#e6f5ec;color:#1f5f3b}
+pre.sql .dim{color:var(--muted)}
+/* Quelltabellen */
+table.src{border-collapse:collapse;width:100%;font-size:.9em;margin:4px 0 10px}
+table.src th{background:var(--navy);color:#fff;text-align:left;padding:4px 8px;font-weight:600;font-family:var(--mono);font-size:.85em}
+table.src td{padding:4px 8px;border-bottom:1px solid #eef1f5;font-family:var(--mono);white-space:nowrap}
+table.src tr.gone td{opacity:.35;text-decoration:line-through}
+table.src tr.mark td{background:#fff7e8}
+.chip{display:inline-flex;align-items:center;justify-content:center;min-width:1.6em;height:1.6em;border-radius:999px;color:#fff;font-weight:700;font-family:var(--mono);font-size:.85em;padding:0 .35em;vertical-align:middle}
+.chip.c1{background:var(--c1)} .chip.c2{background:var(--c2)} .chip.c3{background:var(--c3)}
+.chip.c0{background:#fff;color:var(--c0);border:2px dashed var(--c0)}
+.chip.null{background:#fff;color:var(--muted);border:1px solid var(--border);font-style:italic;font-weight:400;font-family:inherit}
+.tbl-title{display:flex;align-items:baseline;gap:8px;margin-top:6px}
+.tbl-title code{font-size:1em;font-weight:700}
+.tbl-title .rows{font-size:.8em;color:var(--muted)}
+.legend{font-size:.8em;color:var(--muted);margin-top:6px}
+/* Schritte */
+.steps{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.steps button{width:2.1em;height:2.1em;border-radius:50%;border:1px solid var(--border);background:#fff;font:inherit;font-size:.85em;font-weight:700;color:var(--muted);cursor:pointer}
+.steps button.done{background:#dbe7f2;color:var(--navy);border-color:#b9cfe3}
+.steps button.cur{background:var(--navy);color:#fff;border-color:var(--navy)}
+.steps .lbl{font-size:.85em;color:var(--muted);margin-left:6px}
+.step-text{font-size:1.05em}
+.step-text strong{color:var(--navy)}
+.predict{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--warm);border:1px solid #f1dfc0;border-radius:10px;padding:10px 14px;margin:10px 0}
+.predict label{font-weight:600;color:var(--navy)}
+.predict input{font-family:var(--mono);font-size:1em;padding:6px 10px;border:1px solid var(--border);border-radius:8px;width:5.5em;background:#fff;color:var(--navy)}
+.predict input:focus{outline:2px solid var(--blue);border-color:var(--blue)}
+.predict .fb{font-weight:600}
+.predict .fb.ok{color:var(--green)} .predict .fb.bad{color:var(--red)}
+button.primary{background:var(--navy);color:#fff;border:0;border-radius:8px;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer}
+button.primary:hover{background:#24427a}
+button.ghost{background:#fff;color:var(--navy);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font:inherit;cursor:pointer}
+button.ghost:hover{background:#f0f3f8}
+button:disabled{opacity:.45;cursor:default}
+/* Ergebnis */
+.result-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:10px 0 4px}
+.result-head .count{font-family:var(--mono);font-size:1.6em;font-weight:700;color:var(--navy);min-width:2.2em}
+.result-head .count.red{color:var(--red)} .result-head .count.green{color:var(--green)}
+.result-head .cap{color:var(--muted)}
+.res-wrap{overflow-x:auto}
+table.res{border-collapse:collapse;width:100%;font-size:.95em}
+table.res th{background:var(--navy);color:#fff;text-align:left;padding:5px 9px;font-weight:600;font-family:var(--mono);font-size:.82em;white-space:nowrap}
+table.res th.sep,table.res td.sep{border-left:3px solid #fff;padding-left:12px}
+table.res td.sep{border-left:3px solid var(--border)}
+table.res td{padding:5px 9px;border-bottom:1px solid #eef1f5;font-family:var(--mono);white-space:nowrap;transition:background .35s,opacity .35s}
+table.res tbody tr{opacity:0;transform:translateY(-4px);transition:opacity .28s ease,transform .28s ease}
+table.res tbody tr.in{opacity:1;transform:none}
+table.res tr.keep td{background:#e6f5ec}
+table.res tr.drop td{background:#fbe9e7;opacity:.55}
+table.res tbody tr.out{opacity:0;height:0}
+table.res tbody tr.out td{padding-top:0;padding-bottom:0;line-height:0;border:0;overflow:hidden}
+table.res tr.newrow td{background:#fff7e8}
+table.res tr.wrong td{background:#fbe9e7}
+table.res td.null{color:var(--muted);font-style:italic;font-family:inherit}
+table.res td.chk{font-weight:700;text-align:center}
+table.res td.chk.ok{color:var(--green)} table.res td.chk.bad{color:var(--red)}
+.note{font-size:.85em;color:var(--muted);margin-top:8px}
+.callout{background:var(--warm);border-left:4px solid var(--orange);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:1em}
+.callout.green{background:#e6f5ec;border-color:var(--green)}
+.callout.red{background:#fbe9e7;border-color:var(--red)}
+.callout.blue{background:#e3ecf5;border-color:var(--blue)}
+.nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.nav .spacer{flex:1}
+.kbd{font-family:var(--mono);font-size:.8em;background:#fff;border:1px solid var(--border);border-radius:4px;padding:0 5px;color:var(--muted)}
+.summary li{margin:6px 0}
+.summary code{font-size:.92em;background:var(--code);padding:1px 5px;border-radius:4px;color:var(--navy)}
+.big{font-size:1.15em}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr;padding:16px 16px 32px}
+  .layout>aside{order:2}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>JOIN-Visualizer</h1>
+  <span class="sub">Relationale Datenbanken – Lektion 7 · Was <code>JOIN … ON</code> wirklich macht</span>
+  <span class="spacer"></span>
+  <button id="btnScale" title="Grössere Schrift für den Beamer">A+</button>
+  <button id="btnRestart">Von vorne</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="card">
+      <h3><span class="tag">Zwei Tabellen</span></h3>
+      <div class="tbl-title"><code>buch</code><span class="rows">4 Zeilen</span></div>
+      <table class="src" id="tblBuch">
+        <thead><tr><th>id</th><th>titel</th><th>jahr</th><th>autorin_id</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="tbl-title"><code>autorin</code><span class="rows">3 Zeilen</span></div>
+      <table class="src" id="tblAutorin">
+        <thead><tr><th>id</th><th>name</th><th>land</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="legend">Die Farbe zeigt, welche Nummer gemeint ist: <code>buch.autorin_id</code> <em>verweist</em> auf <code>autorin.id</code>. Die gestrichelte <span class="chip c0">4</span> zeigt auf eine Autorin, die es nicht gibt.</div>
+    </div>
+    <div class="card" id="tonspurCard">
+      <h3><span class="tag">Dasselbe in Tonspur</span></h3>
+      <p id="tonspurText" style="font-size:.95em">Statt <code>buch</code> und <code>autorin</code>: <code>song</code> (2644 Zeilen) und <code>album</code> (336 Zeilen). Der Verweis heisst <code>song.album_id</code>, die Nummer <code>album.id</code>.</p>
+    </div>
+  </aside>
+
+  <main>
+    <div class="card">
+      <div class="steps" id="steps"></div>
+      <h2 id="stepTitle"></h2>
+      <div id="stepBody"></div>
+      <div class="nav">
+        <button class="ghost" id="btnPrev">← Zurück</button>
+        <span class="note">Tasten: <span class="kbd">←</span> <span class="kbd">→</span> · <span class="kbd">Enter</span> zeigt das Ergebnis</span>
+        <span class="spacer"></span>
+        <button class="primary" id="btnNext">Weiter →</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ================================================================ Daten
+const AUTORIN = [
+  {id:1, name:'Amrein', land:'CH'},
+  {id:2, name:'Bühler', land:'CH'},
+  {id:3, name:'Conrad', land:'DE'},
+];
+const BUCH = [
+  {id:1, titel:'Nebel über dem See', jahr:2019, autorin_id:2},
+  {id:2, titel:'Der letzte Zug',     jahr:2021, autorin_id:1},
+  {id:3, titel:'Kartenhaus',         jahr:2023, autorin_id:2},
+  {id:4, titel:'Stille Wasser',      jahr:2024, autorin_id:4},
+];
+const AUT_IDS = new Set(AUTORIN.map(a=>a.id));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const chip = id => id===null ? '<span class="chip null">NULL</span>' : `<span class="chip ${AUT_IDS.has(id)?'c'+id:'c0'}">${id}</span>`;
+
+// Quelltabellen
+document.querySelector('#tblBuch tbody').innerHTML = BUCH.map(b =>
+  `<tr data-id="${b.id}"><td>${b.id}</td><td>${esc(b.titel)}</td><td>${b.jahr}</td><td>${chip(b.autorin_id)}</td></tr>`).join('');
+document.querySelector('#tblAutorin tbody').innerHTML = AUTORIN.map(a =>
+  `<tr data-id="${a.id}"><td>${chip(a.id)}</td><td>${esc(a.name)}</td><td>${a.land}</td></tr>`).join('');
+
+// ================================================================ Zeilen-Bausteine
+function cellsBuch(b){ return `<td>${b.id}</td><td>${esc(b.titel)}</td><td>${chip(b.autorin_id)}</td>`; }
+function cellsAut(a){ return a ? `<td class="sep">${chip(a.id)}</td><td>${esc(a.name)}</td>`
+                               : `<td class="sep null">NULL</td><td class="null">NULL</td>`; }
+const HEAD_BA = `<tr><th>buch.id</th><th>buch.titel</th><th>buch.autorin_id</th><th class="sep">autorin.id</th><th>autorin.name</th></tr>`;
+const HEAD_AB = `<tr><th>autorin.id</th><th>autorin.name</th><th class="sep">buch.id</th><th>buch.titel</th><th>buch.autorin_id</th></tr>`;
+function rowBA(b,a,extra=''){ return `<tr>${cellsBuch(b)}${cellsAut(a)}${extra}</tr>`; }
+function rowAB(a,b){ return `<tr><td>${chip(a.id)}</td><td>${esc(a.name)}</td>` + (b ? `<td class="sep">${b.id}</td><td>${esc(b.titel)}</td><td>${chip(b.autorin_id)}</td>` : `<td class="sep null">NULL</td><td class="null">NULL</td><td class="null">NULL</td>`) + `</tr>`; }
+
+const CROSS = []; for(const b of BUCH) for(const a of AUTORIN) CROSS.push({b,a});
+const JOINED = CROSS.filter(x => x.b.autorin_id === x.a.id);
+const WRONG  = CROSS.filter(x => x.b.id === x.a.id);
+
+// ================================================================ Schritte
+// Jeder Schritt: title, sql (HTML), intro (HTML), predict (erwartete Zeilen oder null),
+// render(tbody) -> Promise (Animation), after (HTML nach der Animation), count-Farbe.
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let token = 0;                      // bricht laufende Animationen ab
+function alive(t){ return t === token; }
+
+const STEPS = [
+ { key:'start', title:'Zwei Tabellen, eine Frage',
+   sql: `<span class="dim">-- Welche Bücher sind von Bühler?</span>\nSELECT titel FROM buch WHERE autorin_id = <span class="hl">?</span>;`,
+   intro: `<p class="step-text">In <code>buch</code> steht die Autorin nur als <strong>Nummer</strong>. Der Name steht in <code>autorin</code>. Wer die Bücher von Bühler sucht, muss zuerst nachschauen, welche Nummer Bühler hat – und sie abtippen. Genau das haben Sie in Lektion 4 und 5 gemacht.</p>
+           <p class="step-text">Heute soll die Datenbank das selbst tun: <strong>eine</strong> Abfrage, die beide Tabellen nebeneinanderlegt.</p>
+           <div class="callout blue">Beobachten Sie in jedem Schritt zuerst die <strong>Zeilenzahl</strong>, dann den Inhalt. Vor jedem Ergebnis dürfen Sie schätzen.</div>`,
+   predict:null, noResult:true },
+
+ { key:'cross', title:'Schritt 1 – Zwei Tabellen in einem FROM, ohne Bedingung',
+   sql: `SELECT buch.titel, autorin.name\nFROM <span class="hl">buch, autorin</span>;`,
+   intro: `<p class="step-text">Zwei Tabellen im <code>FROM</code>, aber keine Angabe, welche Zeile zu welcher gehört. Was macht die Datenbank?</p>`,
+   predict:12, countColor:'red',
+   head:HEAD_BA,
+   async render(tb,t){
+     for(const {b,a} of CROSS){
+       tb.insertAdjacentHTML('beforeend', rowBA(b,a));
+       const tr = tb.lastElementChild; await sleep(20); tr.classList.add('in');
+       markSrc(b.id, a.id);
+       await sleep(260); if(!alive(t)) return;
+     }
+     clearSrc();
+   },
+   after: `<div class="callout red"><strong>Jede Zeile mit jeder.</strong> 4 Bücher × 3 Autorinnen = 12 Zeilen. Das heisst <strong>Kreuzprodukt</strong>. «Nebel über dem See» steht dreimal da – mit drei Autorinnen, von denen zwei falsch sind.</div>
+           <p class="note">Die Abfrage ist gültig, die Datenbank meldet keinen Fehler. Sie beantwortet eine Frage, die niemand gestellt hat. <strong>Ein vergessenes <code>ON</code> erkennt man an der Zeilenzahl.</strong></p>`,
+   tonspur:`<code>FROM song, album</code> → 2644 × 336 = <strong>888'384</strong> Zeilen. Derselbe Song, 336 Mal.` },
+
+ { key:'on', title:'Schritt 2 – ON: Welche Paare passen?',
+   sql: `SELECT buch.titel, autorin.name\nFROM buch <span class="hl ok">JOIN</span> autorin\n  <span class="hl ok">ON buch.autorin_id = autorin.id</span>;`,
+   intro: `<p class="step-text">Das <code>ON</code> sagt, welche Spalten zusammengehören: der <strong>Verweis</strong> <code>buch.autorin_id</code> und die <strong>Nummer</strong> <code>autorin.id</code>. Die Datenbank prüft das für <em>jede</em> der 12 Zeilen.</p>`,
+   predict:3, countColor:'green',
+   head:HEAD_BA.replace('</tr>','<th class="sep">autorin_id = id ?</th></tr>'),
+   async render(tb,t){
+     // Alle 12 Zeilen sofort da, dann Prüfung Zeile für Zeile
+     for(const {b,a} of CROSS){
+       tb.insertAdjacentHTML('beforeend', rowBA(b,a,`<td class="sep chk"></td>`));
+     }
+     await sleep(30); for(const tr of tb.children) tr.classList.add('in');
+     await sleep(500); if(!alive(t)) return;
+     let i=0;
+     for(const tr of Array.from(tb.children)){
+       const {b,a} = CROSS[i++];
+       const ok = b.autorin_id === a.id;
+       const chk = tr.querySelector('.chk');
+       chk.textContent = `${b.autorin_id} = ${a.id}  ${ok?'✓':'✗'}`;
+       chk.classList.add(ok?'ok':'bad');
+       tr.classList.add(ok?'keep':'drop');
+       await sleep(420); if(!alive(t)) return;
+     }
+     await sleep(500); if(!alive(t)) return;
+     for(const tr of Array.from(tb.children)){ if(tr.classList.contains('drop')) tr.classList.add('out'); }
+     await sleep(450); if(!alive(t)) return;
+     for(const tr of Array.from(tb.children)){ if(tr.classList.contains('out')) tr.remove(); }
+   },
+   after: `<div class="callout green"><strong><code>ON</code> ist ein Filter über das Kreuzprodukt.</strong> Von 12 Paaren bleiben die 3, bei denen Verweis und Nummer gleich sind. Jedes Buch steht jetzt neben <em>seiner</em> Autorin.</div>
+           <p class="note">Merken Sie sich die Reihenfolge: erst alle Kombinationen, dann die Bedingung. So denkt die Datenbank – auch wenn sie es intern schlauer rechnet.</p>`,
+   tonspur:`<code>JOIN album ON song.album_id = album.id</code> → <strong>2643</strong> Zeilen. Jeder Song neben seinem Album.` },
+
+ { key:'missing', title:'Schritt 3 – Eine fehlt',
+   sql: `SELECT buch.titel, autorin.name\nFROM buch JOIN autorin\n  ON buch.autorin_id = autorin.id;   <span class="dim">-- 3 Zeilen. buch hat 4.</span>`,
+   intro: `<p class="step-text"><code>buch</code> hat <strong>4</strong> Zeilen, der <code>JOIN</code> liefert <strong>3</strong>. Welches Buch fehlt – und warum?</p>`,
+   predict:null, countColor:'green',
+   head:HEAD_BA,
+   async render(tb,t){
+     for(const {b,a} of JOINED){ tb.insertAdjacentHTML('beforeend', rowBA(b,a)); }
+     await sleep(30); for(const tr of tb.children) tr.classList.add('in');
+     await sleep(900); if(!alive(t)) return;
+     const gone = document.querySelector('#tblBuch tr[data-id="4"]'); gone.classList.add('mark');
+     await sleep(700); if(!alive(t)) return;
+     gone.classList.remove('mark'); gone.classList.add('gone');
+   },
+   after: `<div class="callout red"><strong>«Stille Wasser» zeigt auf Autorin 4 – die gibt es nicht.</strong> Kein Paar passt, also keine Zeile. Im <code>JOIN</code> ist das Buch nicht <code>NULL</code>, es ist <strong>weg</strong>. Ohne Blick in <code>buch</code> merkt man das nicht.</div>
+           <p class="note">Die Zahl verrät es: 4 gegen 3. Vergleichen Sie die Zeilenzahl des Verbunds immer mit der Tabelle, die vollständig sein sollte. <strong>Wer im <code>JOIN</code> fehlt, ist nicht unschuldig – er ist unsichtbar.</strong> Ein Werkzeug, das solche Zeilen zurückholt, kommt in Lektion 10.</p>`,
+   tonspur:`<code>song</code> hat 2644 Zeilen, der Verbund 2643. Ein Song («Kein Zuhause», <code>album_id</code> 9999) zeigt auf ein Album, das es nicht gibt – <code>SELECT * FROM album WHERE id = 9999</code> liefert 0 Zeilen.` },
+
+ { key:'wrong', title:'Schritt 4 – Die Falle: läuft, und alles ist falsch',
+   sql: `SELECT buch.titel, autorin.name\nFROM buch JOIN autorin\n  ON <span class="hl">buch.id = autorin.id</span>;   <span class="dim">-- Nummer mit Nummer statt Verweis mit Nummer</span>`,
+   intro: `<p class="step-text">Ein häufiger Tippfehler: im <code>ON</code> stehen zwei <code>id</code>-Spalten. Die Abfrage läuft ohne Fehlermeldung. Wie viele Zeilen – und stimmen sie?</p>`,
+   predict:3, countColor:'red',
+   head:HEAD_BA,
+   async render(tb,t){
+     for(const {b,a} of WRONG){
+       tb.insertAdjacentHTML('beforeend', rowBA(b,a));
+       const tr = tb.lastElementChild; await sleep(20); tr.classList.add('in');
+       await sleep(380); if(!alive(t)) return;
+     }
+     await sleep(600); if(!alive(t)) return;
+     for(const tr of tb.children) tr.classList.add('wrong');
+   },
+   after: `<div class="callout red"><strong>3 Zeilen – wie beim richtigen <code>JOIN</code>. Und jede ist falsch.</strong> Buch 1 neben Autorin 1, Buch 2 neben Autorin 2: Die Farben passen nicht. «Nebel über dem See» ist von Bühler, nicht von Amrein.</div>
+           <p class="note">Die Zeilenzahl allein verrät diesen Fehler <strong>nicht</strong>. Der Inhalt schon – wenn man ihn kennt. <code>ON</code> verbindet immer den <strong>Verweis</strong> (<code>…_id</code>) mit der <strong>Nummer</strong> (<code>id</code>), nie <code>id</code> mit <code>id</code>.</p>`,
+   tonspur:`<code>ON song.id = album.id</code> läuft in Datebänkli durch und liefert 336 Zeilen Unsinn: Song 1 neben Album 1, Song 2 neben Album 2 …` },
+
+ { key:'end', title:'Das Ganze in drei Sätzen',
+   sql:null, noResult:true, predict:null,
+   intro: `<ol class="summary big">
+     <li>Zwei Tabellen im <code>FROM</code> ohne <code>ON</code>: <strong>jede Zeile mit jeder</strong> (Kreuzprodukt). Man erkennt es an der absurd grossen Zeilenzahl.</li>
+     <li><code>JOIN … ON verweis = nummer</code> behält nur die <strong>passenden Paare</strong>. Wer keinen Partner hat, ist <strong>weg</strong> – nicht <code>NULL</code>, sondern unsichtbar.</li>
+     <li><code>ON</code> verbindet immer den <strong>Verweis</strong> (<code>…_id</code>) mit der <strong>Nummer</strong> (<code>id</code>). <code>id = id</code> läuft fehlerfrei und liefert lauter falsche Paare – die Zeilenzahl verrät das nicht, nur der Inhalt.</li>
+   </ol>
+   <div class="callout blue">Jetzt dasselbe in gross: <code>song</code> und <code>album</code> in Datebänkli – 888'384 und 2643, und <code>song</code> hat 2644 Zeilen.</div>`,
+   tonspur:`Bei drei Tabellen hängt man einfach ein weiteres <code>JOIN … ON</code> an. Jede Verbindung braucht ihr eigenes <code>ON</code> – das kommt im Fall Radiokapelle.` },
+];
+
+// ================================================================ Zustand & Rendering
+let cur = 0; const done = new Set();
+const $steps = document.getElementById('steps'), $title = document.getElementById('stepTitle'), $body = document.getElementById('stepBody');
+const $prev = document.getElementById('btnPrev'), $next = document.getElementById('btnNext');
+
+function markSrc(bid, aid){ clearSrc(); document.querySelector(`#tblBuch tr[data-id="${bid}"]`).classList.add('mark'); document.querySelector(`#tblAutorin tr[data-id="${aid}"]`).classList.add('mark'); }
+function clearSrc(){ document.querySelectorAll('table.src tr.mark').forEach(tr=>tr.classList.remove('mark')); }
+function resetSrc(){ clearSrc(); document.querySelectorAll('table.src tr.gone').forEach(tr=>tr.classList.remove('gone')); }
+
+function renderSteps(){
+  $steps.innerHTML = STEPS.map((s,i)=>`<button data-i="${i}" class="${i===cur?'cur':(done.has(i)?'done':'')}" title="${esc(s.title)}">${i===0?'▶':(i===STEPS.length-1?'✓':i)}</button>`).join('') + `<span class="lbl">${cur===0?'Start':(cur===STEPS.length-1?'Zusammenfassung':'Schritt '+cur+' von '+(STEPS.length-2))}</span>`;
+  $steps.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.i)));
+  $prev.disabled = cur===0; $next.disabled = cur===STEPS.length-1;
+}
+
+function show(i){
+  token++; const t = token; cur = i; resetSrc();
+  const s = STEPS[i];
+  $title.textContent = s.title;
+  document.getElementById('tonspurText').innerHTML = s.tonspur || `Statt <code>buch</code> und <code>autorin</code>: <code>song</code> (2644 Zeilen) und <code>album</code> (336 Zeilen). Der Verweis heisst <code>song.album_id</code>, die Nummer <code>album.id</code>.`;
+  let html = s.sql ? `<pre class="sql">${s.sql}</pre>` : '';
+  html += s.intro;
+  if(!s.noResult){
+    html += `<div class="predict" id="predict">` + (s.predict!==null ? `<label for="guess">Wie viele Zeilen?</label><input type="number" id="guess" min="0" max="999" inputmode="numeric"> ` : '') + `<button class="primary" id="btnShow">Ergebnis zeigen</button><span class="fb" id="fb"></span></div>`;
+    html += `<div id="result" hidden><div class="result-head"><span class="count ${s.countColor||''}" id="count">0</span><span class="cap">Zeilen</span><button class="ghost" id="btnReplay" style="margin-left:auto">↻ Nochmals</button></div>
+             <div class="res-wrap"><table class="res"><thead>${s.head}</thead><tbody id="tb"></tbody></table></div><div id="after" hidden>${s.after||''}</div></div>`;
+  }
+  $body.innerHTML = html;
+  renderSteps();
+  if(!s.noResult){
+    document.getElementById('btnShow').addEventListener('click', ()=>reveal(t));
+    const g = document.getElementById('guess'); if(g){ g.focus(); g.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); reveal(t); } }); }
+  }
+  window.scrollTo({top:0});
+}
+
+async function reveal(t){
+  const s = STEPS[cur]; if(!alive(t)) return;
+  const g = document.getElementById('guess'), fb = document.getElementById('fb');
+  if(g && s.predict!==null){
+    const v = g.value.trim();
+    if(v!==''){ const n = +v; if(n===s.predict){ fb.textContent='Richtig geschätzt.'; fb.className='fb ok'; } else { fb.textContent=`Geschätzt ${n} – es sind ${s.predict}. Schauen Sie, warum.`; fb.className='fb bad'; } }
+    g.disabled = true;
+    if(v==='') document.getElementById('predict').hidden = true;
+  } else { document.getElementById('predict').hidden = true; }
+  document.getElementById('btnShow').disabled = true;
+  await play(t);
+}
+
+async function play(t){
+  const s = STEPS[cur];
+  const res = document.getElementById('result'), tb = document.getElementById('tb'), after = document.getElementById('after'), cnt = document.getElementById('count');
+  res.hidden = false; after.hidden = true; tb.innerHTML = ''; resetSrc();
+  const obs = new MutationObserver(()=>{ cnt.textContent = tb.querySelectorAll('tr:not(.out)').length; });
+  obs.observe(tb, {childList:true, subtree:true, attributes:true, attributeFilter:['class']});
+  document.getElementById('btnReplay').onclick = ()=>{ token++; play(token); };
+  await s.render(tb, t);
+  obs.disconnect(); if(!alive(t)) return;
+  cnt.textContent = tb.querySelectorAll('tr:not(.out)').length;
+  after.hidden = false; done.add(cur); renderSteps();
+  const bn = document.getElementById('btnIsNull');
+  if(bn){ bn.addEventListener('click', ()=>{
+    for(const tr of Array.from(tb.children)){ if(!tr.querySelector('td.null')) tr.classList.add('drop'); }
+    setTimeout(()=>{ for(const tr of Array.from(tb.children)){ if(tr.classList.contains('drop')) tr.classList.add('out'); } for(const tr of Array.from(tb.children)){ if(tr.classList.contains('out')) tr.remove(); } cnt.textContent = tb.querySelectorAll('tr:not(.out)').length; document.getElementById('fbIsNull').textContent='1 Zeile: Conrad – die einzige ohne Buch.'; document.getElementById('fbIsNull').className='fb ok'; }, 450);
+    bn.disabled = true;
+  }); }
+  after.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function go(i){ if(i<0||i>=STEPS.length) return; show(i); }
+$prev.addEventListener('click', ()=>go(cur-1));
+$next.addEventListener('click', ()=>go(cur+1));
+document.getElementById('btnRestart').addEventListener('click', ()=>{ done.clear(); go(0); });
+document.getElementById('btnScale').addEventListener('click', function(){ const big = document.documentElement.style.getPropertyValue('--scale')==='1.25'; document.documentElement.style.setProperty('--scale', big?'1':'1.25'); this.classList.toggle('on', !big); });
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT') { if(e.key==='ArrowRight'||e.key==='ArrowLeft'){ /* Pfeile auch im Feld */ } else return; }
+  if(e.key==='ArrowRight'){ go(cur+1); }
+  else if(e.key==='ArrowLeft'){ go(cur-1); }
+  else if(e.key==='Enter'){ const b = document.getElementById('btnShow'); if(b && !b.disabled) b.click(); else if(!$next.disabled) go(cur+1); }
+});
+show(0);
+</script>
+</body>
+</html>
