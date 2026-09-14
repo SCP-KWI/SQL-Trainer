@@ -131,10 +131,6 @@ table.res td.chk.ok{color:var(--green)} table.res td.chk.bad{color:var(--red)}
       </table>
       <div class="legend">Die Farbe zeigt, welche Nummer gemeint ist: <code>buch.autorin_id</code> <em>verweist</em> auf <code>autorin.id</code>. Die gestrichelte <span class="chip c0">4</span> zeigt auf eine Autorin, die es nicht gibt.</div>
     </div>
-    <div class="card" id="tonspurCard">
-      <h3><span class="tag">Dasselbe in Tonspur</span></h3>
-      <p id="tonspurText" style="font-size:.95em">Statt <code>buch</code> und <code>autorin</code>: <code>song</code> (2644 Zeilen) und <code>album</code> (336 Zeilen). Der Verweis heisst <code>song.album_id</code>, die Nummer <code>album.id</code>.</p>
-    </div>
   </aside>
 
   <main>
@@ -144,7 +140,6 @@ table.res td.chk.ok{color:var(--green)} table.res td.chk.bad{color:var(--red)}
       <div id="stepBody"></div>
       <div class="nav">
         <button class="ghost" id="btnPrev">← Zurück</button>
-        <span class="note">Tasten: <span class="kbd">←</span> <span class="kbd">→</span> · <span class="kbd">Enter</span> zeigt das Ergebnis</span>
         <span class="spacer"></span>
         <button class="primary" id="btnNext">Weiter →</button>
       </div>
@@ -219,7 +214,7 @@ const STEPS = [
    },
    after: `<div class="callout red"><strong>Jede Zeile mit jeder.</strong> 4 Bücher × 3 Autorinnen = 12 Zeilen. Das heisst <strong>Kreuzprodukt</strong>. «Nebel über dem See» steht dreimal da – mit drei Autorinnen, von denen zwei falsch sind.</div>
            <p class="note">Die Abfrage ist gültig, die Datenbank meldet keinen Fehler. Sie beantwortet eine Frage, die niemand gestellt hat. <strong>Ein vergessenes <code>ON</code> erkennt man an der Zeilenzahl.</strong></p>`,
-   tonspur:`<code>FROM song, album</code> → 2644 × 336 = <strong>888'384</strong> Zeilen. Derselbe Song, 336 Mal.` },
+ },
 
  { key:'on', title:'Schritt 2 – ON: Welche Paare passen?',
    sql: `SELECT buch.titel, autorin.name\nFROM buch <span class="hl ok">JOIN</span> autorin\n  <span class="hl ok">ON buch.autorin_id = autorin.id</span>;`,
@@ -250,7 +245,7 @@ const STEPS = [
    },
    after: `<div class="callout green"><strong><code>ON</code> ist ein Filter über das Kreuzprodukt.</strong> Von 12 Paaren bleiben die 3, bei denen Verweis und Nummer gleich sind. Jedes Buch steht jetzt neben <em>seiner</em> Autorin.</div>
            <p class="note">Merken Sie sich die Reihenfolge: erst alle Kombinationen, dann die Bedingung. So denkt die Datenbank – auch wenn sie es intern schlauer rechnet.</p>`,
-   tonspur:`<code>JOIN album ON song.album_id = album.id</code> → <strong>2643</strong> Zeilen. Jeder Song neben seinem Album.` },
+ },
 
  { key:'missing', title:'Schritt 3 – Eine fehlt',
    sql: `SELECT buch.titel, autorin.name\nFROM buch JOIN autorin\n  ON buch.autorin_id = autorin.id;   <span class="dim">-- 3 Zeilen. buch hat 4.</span>`,
@@ -267,7 +262,7 @@ const STEPS = [
    },
    after: `<div class="callout red"><strong>«Stille Wasser» zeigt auf Autorin 4 – die gibt es nicht.</strong> Kein Paar passt, also keine Zeile. Im <code>JOIN</code> ist das Buch nicht <code>NULL</code>, es ist <strong>weg</strong>. Ohne Blick in <code>buch</code> merkt man das nicht.</div>
            <p class="note">Die Zahl verrät es: 4 gegen 3. Vergleichen Sie die Zeilenzahl des Verbunds immer mit der Tabelle, die vollständig sein sollte. <strong>Wer im <code>JOIN</code> fehlt, ist nicht unschuldig – er ist unsichtbar.</strong> Ein Werkzeug, das solche Zeilen zurückholt, kommt in Lektion 10.</p>`,
-   tonspur:`<code>song</code> hat 2644 Zeilen, der Verbund 2643. Ein Song («Kein Zuhause», <code>album_id</code> 9999) zeigt auf ein Album, das es nicht gibt – <code>SELECT * FROM album WHERE id = 9999</code> liefert 0 Zeilen.` },
+ },
 
  { key:'wrong', title:'Schritt 4 – Die Falle: läuft, und alles ist falsch',
    sql: `SELECT buch.titel, autorin.name\nFROM buch JOIN autorin\n  ON <span class="hl">buch.id = autorin.id</span>;   <span class="dim">-- Nummer mit Nummer statt Verweis mit Nummer</span>`,
@@ -285,7 +280,7 @@ const STEPS = [
    },
    after: `<div class="callout red"><strong>3 Zeilen – wie beim richtigen <code>JOIN</code>. Und jede ist falsch.</strong> Buch 1 neben Autorin 1, Buch 2 neben Autorin 2: Die Farben passen nicht. «Nebel über dem See» ist von Bühler, nicht von Amrein.</div>
            <p class="note">Die Zeilenzahl allein verrät diesen Fehler <strong>nicht</strong>. Der Inhalt schon – wenn man ihn kennt. <code>ON</code> verbindet immer den <strong>Verweis</strong> (<code>…_id</code>) mit der <strong>Nummer</strong> (<code>id</code>), nie <code>id</code> mit <code>id</code>.</p>`,
-   tonspur:`<code>ON song.id = album.id</code> läuft in Datebänkli durch und liefert 336 Zeilen Unsinn: Song 1 neben Album 1, Song 2 neben Album 2 …` },
+ },
 
  { key:'end', title:'Das Ganze in drei Sätzen',
    sql:null, noResult:true, predict:null,
@@ -294,8 +289,8 @@ const STEPS = [
      <li><code>JOIN … ON verweis = nummer</code> behält nur die <strong>passenden Paare</strong>. Wer keinen Partner hat, ist <strong>weg</strong> – nicht <code>NULL</code>, sondern unsichtbar.</li>
      <li><code>ON</code> verbindet immer den <strong>Verweis</strong> (<code>…_id</code>) mit der <strong>Nummer</strong> (<code>id</code>). <code>id = id</code> läuft fehlerfrei und liefert lauter falsche Paare – die Zeilenzahl verrät das nicht, nur der Inhalt.</li>
    </ol>
-   <div class="callout blue">Jetzt dasselbe in gross: <code>song</code> und <code>album</code> in Datebänkli – 888'384 und 2643, und <code>song</code> hat 2644 Zeilen.</div>`,
-   tonspur:`Bei drei Tabellen hängt man einfach ein weiteres <code>JOIN … ON</code> an. Jede Verbindung braucht ihr eigenes <code>ON</code> – das kommt im Fall Radiokapelle.` },
+   `,
+ },
 ];
 
 // ================================================================ Zustand & Rendering
@@ -317,7 +312,6 @@ function show(i){
   token++; const t = token; cur = i; resetSrc();
   const s = STEPS[i];
   $title.textContent = s.title;
-  document.getElementById('tonspurText').innerHTML = s.tonspur || `Statt <code>buch</code> und <code>autorin</code>: <code>song</code> (2644 Zeilen) und <code>album</code> (336 Zeilen). Der Verweis heisst <code>song.album_id</code>, die Nummer <code>album.id</code>.`;
   let html = s.sql ? `<pre class="sql">${s.sql}</pre>` : '';
   html += s.intro;
   if(!s.noResult){
