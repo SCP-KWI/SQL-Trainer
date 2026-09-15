@@ -397,6 +397,7 @@ const MATCH_QUERIES = [
 const Q = [
  {id:1, area:'Theorie', pts:3, type:'match', title:'Drei Bilder, drei Abfragen',
   q:'Jedes Bild zeigt, was eine der drei Abfragen mit einer Tabelle macht (links die Tabelle, rechts das Ergebnis). Ordnen Sie jedem Bild die passende Abfrage zu.',
+  why:'Drei Grundoperationen: <code>WHERE</code> wählt <strong>Zeilen</strong> aus (Selektion), die Spaltenliste im <code>SELECT</code> wählt <strong>Spalten</strong> aus (Projektion), <code>GROUP BY</code> fasst Zeilen zu <strong>Stapeln</strong> zusammen (Gruppierung).',
   pics:[
     {kind:'filter', answer:'C', name:'Filter (Selektion)', why:'Ganze <strong>Zeilen</strong> werden ausgewählt, alle Spalten bleiben. Das macht <code>WHERE</code>. Fachbegriff: <strong>Selektion</strong>.'},
     {kind:'group',  answer:'A', name:'Gruppierung',        why:'Zeilen mit gleichem Wert werden zu einem <strong>Stapel</strong> zusammengefasst, und pro Stapel entsteht <em>eine</em> Ergebniszeile mit einer Zahl. Das macht <code>GROUP BY</code> mit <code>COUNT(*)</code>. Fachbegriff: <strong>Gruppierung</strong>.'},
@@ -715,7 +716,7 @@ function renderResult(){
   h+=`<p class="small" style="margin-top:12px">Ergebniszeile für die Lehrperson (zeigen oder abschreiben):</p><div class="codebox">${esc(line)}</div></div>`;
   // Merkpunkte aus den falschen Antworten
   const wrong=g.filter(x=>x.r.status!=='ok');
-  if(wrong.length){ h+=`<div class="card merk"><strong>Woran es noch hakt</strong><ul>${wrong.map(x=>'<li><strong>Frage '+(Q.indexOf(x.q)+1)+'</strong> ('+x.q.title+'): '+x.q.why.split(/(?<=\.)\s/)[0]+'</li>').join('')}</ul></div>`; }
+  if(wrong.length){ h+=`<div class="card merk"><strong>Woran es noch hakt</strong><ul>${wrong.map(x=>'<li><strong>Frage '+(Q.indexOf(x.q)+1)+'</strong> ('+x.q.title+'): '+(x.q.why||'').split(/(?<=\.)\s/)[0]+'</li>').join('')}</ul></div>`; }
   // Einzelne Fragen
   for(const {q,r} of g){
     const i=Q.indexOf(q);
