@@ -859,11 +859,15 @@ document.getElementById('zoomOut').addEventListener('click',()=>setScale(scale-0
 const STATIONS = [
 { key:'A', title:'Auffrischen', lead:'Das aus Lektion 7 — damit es sitzt, bevor heute etwas Neues dazukommt.',
   tasks:[
-  { id:'A1', lvl:'Basis', q:'Zuerst der Klassiker: Wie viele Zeilen liefert ein Verbund <b>ohne</b> Bedingung? Lassen Sie die Datenbank zählen.',
+  { id:'A1', lvl:'Basis', wert:true,
+    q:'Zuerst der Klassiker. Stellen Sie <code>buch</code> und <code>autorin</code> ohne jede Bedingung nebeneinander: '
+      + 'Wie viele Zeilen kommen dabei heraus? <b>Lassen Sie die Datenbank zählen</b> – Sie sollen die Zahl nicht selbst ausrechnen.',
     skel:'SELECT COUNT(*)\nFROM buch, ________;',
     sol:'SELECT COUNT(*) FROM buch, autorin;',
-    hint:'Zwei Tabellennamen im FROM, durch Komma getrennt, kein ON. 24 Bücher, 12 Autorinnen.',
-    note:'288 = 24 × 12. Jede Zeile mit jeder — davon sind 266 Unsinn.' },
+    hint:'Zwei Tabellennamen im FROM, durch Komma getrennt, kein ON. Ins Feld gehört die zweite Tabelle aus der Frage.',
+    wertHint:'Die Zahl entsteht aus den Zeilenzahlen der beiden Tabellen, die in der Frage stehen. Steht im FROM wirklich buch und autorin?',
+    note:'288 = 24 × 12. Jede Zeile mit jeder – davon sind 266 Unsinn. '
+      + 'Wer sehen will, wie das aussieht: COUNT(*) durch * ersetzen.' },
   { id:'A2', lvl:'Basis', q:'Titel jedes Buchs zusammen mit dem <b>Namen</b> der Autorin.',
     skel:"SELECT buch.titel, autorin.name\nFROM buch JOIN autorin\n  ON buch.________ = autorin.____;",
     sol:'SELECT buch.titel, autorin.name FROM buch JOIN autorin ON buch.autorin_id = autorin.id;',
@@ -1046,12 +1050,29 @@ function check(t, sql, box){
   for(const f of (t.forbid||[])){
     if(f.re.test(sql)){ fb.innerHTML = querly('bad', `<b>Noch nicht.</b> ${f.msg}`); return; }
   }
+  // Aufgaben, deren Ergebnis EINE Zahl ist (A1), brauchen eine eigene Rückmeldung:
+  // «die Zeilenzahl stimmt» wäre dort unsinnig, denn gesucht IST eine Zeilenzahl.
+  if(t.wert){
+    const zahl = (r.res && r.res.length && r.res[0].values.length === 1 && r.res[0].values[0].length === 1)
+               ? r.res[0].values[0][0] : null;
+    fb.innerHTML = querly('bad', zahl === null
+      ? `<b>Noch nicht.</b> Erwartet ist <b>eine einzige Zahl</b>. ${t.wertHint || ''}`
+      : `<b>Noch nicht.</b> Ihre Abfrage liefert <b>${esc(zahl)}</b> — das ist eine gültige Zahl,
+         aber nicht die gesuchte. ${t.wertHint || ''}`);
+    return;
+  }
+  const zeile = n => `${n} Zeile${n === 1 ? '' : 'n'}`;
+  const hatJoin = /\bjoin\b|\bon\b/i.test(sql);
   if(nIst !== nSoll){
-    fb.innerHTML = querly('bad', `<b>Die Zeilenzahl stimmt nicht.</b> Ihre Abfrage liefert <b>${nIst}</b>,
-      erwartet sind <b>${nSoll}</b>. ${nIst<nSoll ? 'Es fehlen Zeilen — wer fällt heraus?' : 'Es sind zu viele — paart das ON wirklich das Richtige?'}`);
+    fb.innerHTML = querly('bad', `<b>Die Zeilenzahl stimmt nicht.</b> Ihre Abfrage liefert <b>${zeile(nIst)}</b>,
+      erwartet sind <b>${zeile(nSoll)}</b>. ${nIst<nSoll
+        ? 'Es fehlen Zeilen — wer fällt heraus?'
+        : (hatJoin ? 'Es sind zu viele — paart das ON wirklich das Richtige?'
+                   : 'Es sind zu viele — fehlt eine Bedingung?')}`);
   } else {
     fb.innerHTML = querly('bad', `<b>Die Zeilenzahl stimmt, der Inhalt nicht.</b>
-      ${nSoll} Zeilen sind richtig — aber es stehen andere Werte darin. Prüfen Sie das <code>ON</code> und die ausgewählten Spalten.`);
+      ${zeile(nSoll)} sind richtig — aber es stehen andere Werte darin.
+      Prüfen Sie ${hatJoin ? 'das <code>ON</code> und ' : ''}die ausgewählten Spalten.`);
   }
 }
 
