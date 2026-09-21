@@ -535,8 +535,46 @@ const BUCH = [
 ];
 const AUT_IDS = new Set(AUTORIN.map(a=>a.id));
 
-document.head.insertAdjacentHTML('beforeend',
-  '<style>table.res tr.anim{opacity:0;transition:opacity .22s ease}table.res tr.anim.in{opacity:1}</style>');
+document.head.insertAdjacentHTML('beforeend', `<style>
+table.res tr.anim{opacity:0;transition:opacity .22s ease}
+table.res tr.anim.in{opacity:1}
+/* --- Bühne: zwei Tabellen, die zusammenfliegen --- */
+.stage{margin-top:6px}
+.srcrow{display:flex;align-items:flex-start;gap:12px}
+.srcbox{flex:1 1 0;min-width:0;border:2px solid var(--border);border-radius:10px;padding:8px 10px;
+  background:#fff;transition:border-color .25s, box-shadow .25s}
+.srcbox.fuehrt{border-color:var(--navy);box-shadow:0 0 0 3px rgba(26,50,96,.10)}
+.srcbox .cap{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;font-size:.85em;color:var(--muted)}
+.srcbox .cap code{font-size:1.15em;font-weight:700;color:var(--navy);background:none;padding:0}
+.srcbox .cap b.lead{margin-left:auto;font-size:.85em;color:#fff;background:var(--navy);
+  border-radius:999px;padding:1px 9px;letter-spacing:.04em}
+table.src.big{font-size:1em;margin:0}
+table.src.big td{padding:6px 8px;transition:background .25s}
+table.src.big tr.aktiv td{background:#dbe7f2;font-weight:700}
+table.src.big tr.treffer td{background:var(--keep)}
+table.src.big tr.leer td{background:var(--drop)}
+.merge{align-self:center;flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;
+  color:var(--blue);font-size:1.35em;line-height:1;padding:0 4px}
+.merge span{display:block}
+.merge small{font-size:.5em;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.sagt{min-height:2.9em;margin:12px 0 8px;padding:9px 14px;border-radius:10px;background:var(--warm);
+  border:1px solid #f1dfc0;font-size:1.02em}
+.sagt b{color:var(--navy)}
+.sagt .weg{color:var(--red);font-weight:700}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.ctrl button{font:inherit;padding:7px 15px;border-radius:8px;border:1px solid var(--navy);
+  background:#fff;color:var(--navy);cursor:pointer;font-weight:600}
+.ctrl button.primary{background:var(--navy);color:#fff}
+.ctrl button:disabled{opacity:.35;cursor:default}
+.ctrl .zaehler{color:var(--muted);font-size:.9em;font-family:var(--mono)}
+.erg .cap{font-size:.85em;color:var(--muted);margin-bottom:3px}
+td.platz{background:repeating-linear-gradient(45deg,#f6f8fb,#f6f8fb 6px,#eef2f7 6px,#eef2f7 12px)}
+.flyer{z-index:99;pointer-events:none;display:flex;align-items:center}
+.flychip{background:var(--navy);color:#fff;border-radius:6px;padding:3px 9px;font-family:var(--mono);
+  font-size:.9em;font-weight:700;white-space:nowrap;box-shadow:0 4px 14px rgba(26,50,96,.3)}
+.flychip.nullchip{background:#fff;color:var(--muted);border:2px dashed var(--c0);font-style:italic;font-weight:400}
+</style>`);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const chip = id => id===null||id===undefined ? '<span class="chip null">NULL</span>'
@@ -550,11 +588,11 @@ document.querySelector('#tblAut tbody').innerHTML = AUTORIN.map(a =>
 
 /* ================================================================ Mengenbild */
 const VENNS = [
-  {key:'inner', cap:'INNER',       parts:['lens']},
+  {key:'inner', cap:'JOIN',        parts:['lens']},
   {key:'left',  cap:'LEFT',        parts:['L','lens']},
-  {key:'lonly', cap:'LEFT +\nIS NULL', parts:['Lonly']},
   {key:'right', cap:'RIGHT',       parts:['R','lens']},
   {key:'full',  cap:'FULL',        parts:['L','R','lens']},
+  {key:'lonly', cap:'LEFT +\nIS NULL', parts:['Lonly']},
 ];
 function vennSvg(v, i){
   const id = 'v'+i;
@@ -589,19 +627,13 @@ const byId = id => AUTORIN.find(a=>a.id===id) || null;
 const CROSS  = []; for(const b of BUCH) for(const a of AUTORIN) CROSS.push({b,a});
 const JOINED = CROSS.filter(x => x.b.autorin_id === x.a.id);
 
-const HEAD_BA = `<tr><th>buch.id</th><th>buch.titel</th><th>autorin_id</th><th class="sep">autorin.id</th><th>autorin.name</th><th>land</th></tr>`;
-const HEAD_AB = `<tr><th>autorin.id</th><th>autorin.name</th><th class="sep">buch.id</th><th>buch.titel</th><th>autorin_id</th></tr>`;
+const HEAD_BA = `<tr><th>buch.id</th><th>buch.titel</th><th>autorin_id</th><th class="sep">autorin.id</th><th>autorin.name</th></tr>`;
 
 function cellsB(b){ return b ? `<td>${b.id}</td><td>${esc(b.titel)}</td><td>${chip(b.autorin_id)}</td>`
                              : `<td class="null">NULL</td><td class="null">NULL</td><td class="null">NULL</td>`; }
-function cellsA(a){ return a ? `<td class="sep">${chip(a.id)}</td><td>${esc(a.name)}</td><td>${a.land}</td>`
-                             : `<td class="sep null">NULL</td><td class="null">NULL</td><td class="null">NULL</td>`; }
+function cellsA(a){ return a ? `<td class="sep">${chip(a.id)}</td><td>${esc(a.name)}</td>`
+                             : `<td class="sep null">NULL</td><td class="null">NULL</td>`; }
 function rowBA(b,a,cls){ return `<tr class="${cls||''} anim">${cellsB(b)}${cellsA(a)}</tr>`; }
-function rowAB(a,b,cls){
-  return `<tr class="${cls||''} anim"><td>${chip(a.id)}</td><td>${esc(a.name)}</td>` +
-    (b ? `<td class="sep">${b.id}</td><td>${esc(b.titel)}</td><td>${chip(b.autorin_id)}</td>`
-       : `<td class="sep null">NULL</td><td class="null">NULL</td><td class="null">NULL</td>`) + `</tr>`;
-}
 function tbl(head, rowsHtml){
   return `<div class="scroll"><table class="res"><thead>${head}</thead><tbody>${rowsHtml}</tbody></table></div>`;
 }
@@ -613,7 +645,7 @@ function reveal(root, ms){
   rows.forEach((r,i)=> setTimeout(()=>r.classList.add('in'), 40 + i*(ms||90)));
 }
 
-/* ================================================================ Visualizer-Schritte */
+/* ================================================================ Bühne: der Verbund als Bewegung */
 function markSrc(goneB, goneA, markB, markA){
   document.querySelectorAll('#tblBuch tbody tr').forEach(tr=>{
     const id = +tr.dataset.b;
@@ -627,137 +659,276 @@ function markSrc(goneB, goneA, markB, markA){
   });
 }
 
+/* Welche Zeile führt, und welche Paare entstehen dabei? */
+function planFor(modus){
+  const plan = [];
+  if(modus === 'left' || modus === 'full'){
+    for(const b of BUCH){
+      const as = AUTORIN.filter(a => a.id === b.autorin_id);
+      plan.push({seite:'l', row:b, paare: as.length ? as.map(a=>({b,a})) : [{b, a:null}]});
+    }
+  }
+  if(modus === 'right'){
+    for(const a of AUTORIN){
+      const bs = BUCH.filter(b => b.autorin_id === a.id);
+      plan.push({seite:'r', row:a, paare: bs.length ? bs.map(b=>({b,a})) : [{b:null, a}]});
+    }
+  }
+  if(modus === 'full'){
+    for(const a of AUTORIN){
+      if(!BUCH.some(b => b.autorin_id === a.id)) plan.push({seite:'r', row:a, paare:[{b:null, a}]});
+    }
+  }
+  return plan;
+}
+
+const cellsBuchBig = cellsB, cellsAutBig = cellsA;
+const PLATZ_R = `<td class="sep platz"></td><td class="platz"></td>`;
+const PLATZ_L = `<td class="platz"></td><td class="platz"></td><td class="platz"></td>`;
+
+/* Ein Element fliegt von A nach B. */
+function fly(vonEl, zielEl, html, cls, ms){
+  ms = ms || 620;
+  if(!vonEl || !zielEl) return Promise.resolve();
+  const a = vonEl.getBoundingClientRect(), z = zielEl.getBoundingClientRect();
+  const d = document.createElement('div');
+  d.className = 'flyer';
+  d.innerHTML = `<span class="flychip ${cls||''}">${html}</span>`;
+  d.style.cssText = `position:fixed;left:${a.left}px;top:${a.top + a.height/2 - 14}px;`;
+  document.body.appendChild(d);
+  return new Promise(r=>{
+    requestAnimationFrame(()=>{
+      d.style.transition = `transform ${ms}ms cubic-bezier(.34,.8,.3,1), opacity ${ms}ms ease-in`;
+      d.style.transform = `translate(${z.left - a.left + 6}px, ${z.top - a.top - a.height/2 + 20}px) scale(.92)`;
+      d.style.opacity = '.15';
+    });
+    setTimeout(()=>{ d.remove(); r(); }, ms + 20);
+  });
+}
+
+const STAGE_HEAD = HEAD_BA;
+
+function stageHtml(){
+  return `<div class="stage">
+    <div class="srcrow">
+      <div class="srcbox" id="boxB">
+        <div class="cap"><code>buch</code><span>4 Zeilen</span><b class="lead" hidden>führt</b></div>
+        <table class="src big"><thead><tr><th>id</th><th>titel</th><th>autorin_id</th></tr></thead>
+          <tbody>${BUCH.map(b=>`<tr data-b="${b.id}"><td>${b.id}</td><td>${esc(b.titel)}</td><td>${chip(b.autorin_id)}</td></tr>`).join('')}</tbody></table>
+      </div>
+      <div class="merge"><span>&#10230;</span><small>ON</small><span>&#10229;</span></div>
+      <div class="srcbox" id="boxA">
+        <div class="cap"><code>autorin</code><span>3 Zeilen</span><b class="lead" hidden>führt</b></div>
+        <table class="src big"><thead><tr><th>id</th><th>name</th></tr></thead>
+          <tbody>${AUTORIN.map(a=>`<tr data-a="${a.id}"><td>${chip(a.id)}</td><td>${esc(a.name)}</td></tr>`).join('')}</tbody></table>
+      </div>
+    </div>
+    <div class="sagt" id="sagt">Klicken Sie auf <b>nächste Zeile</b> – dann geht die Datenbank Zeile für Zeile vor.</div>
+    <div class="ctrl">
+      <button id="bNext" class="primary">&#9654; nächste Zeile</button>
+      <button id="bAll">alle auf einmal</button>
+      <button id="bReset">von vorn</button>
+      <span class="zaehler" id="zaehler"></span>
+    </div>
+    <div class="erg"><div class="cap">Ergebnis</div>
+      <table class="res"><thead>${STAGE_HEAD}</thead><tbody id="ergBody"></tbody></table></div>
+    <div id="fazit"></div>
+  </div>`;
+}
+
+/* Steuert die Bühne. modus: 'left' | 'right' | 'full' */
+function wireStage(root, modus, fazitHtml){
+  const plan = planFor(modus);
+  const $ = q => root.querySelector(q);
+  const body = $('#ergBody'), sagt = $('#sagt'), zaehler = $('#zaehler'), fazit = $('#fazit');
+  const boxB = $('#boxB'), boxA = $('#boxA');
+  let i = 0, laeuft = false;
+
+  const zeileEl = (seite, id) => seite === 'l' ? $(`#boxB tr[data-b="${id}"]`) : $(`#boxA tr[data-a="${id}"]`);
+  const clearMarks = () => root.querySelectorAll('.src.big tr')
+        .forEach(tr => tr.classList.remove('aktiv','treffer','leer'));
+
+  function stand(){
+    zaehler.textContent = i >= plan.length
+      ? `fertig – ${body.children.length} Zeile${body.children.length===1?'':'n'}`
+      : `Zeile ${i+1} von ${plan.length}`;
+    $('#bNext').disabled = laeuft || i >= plan.length;
+    $('#bAll').disabled  = laeuft || i >= plan.length;
+  }
+
+  async function playRow(){
+    if(laeuft || i >= plan.length) return;
+    laeuft = true; stand();
+    const e = plan[i];
+    clearMarks();
+    boxB.querySelector('.lead').hidden = e.seite !== 'l';
+    boxA.querySelector('.lead').hidden = e.seite !== 'r';
+    boxB.classList.toggle('fuehrt', e.seite === 'l');
+    boxA.classList.toggle('fuehrt', e.seite === 'r');
+
+    const fuehr = zeileEl(e.seite, e.row.id);
+    fuehr.classList.add('aktiv');
+    const hatPartner = e.paare.some(pr => e.seite === 'l' ? pr.a : pr.b);
+
+    sagt.innerHTML = e.seite === 'l'
+      ? `<b>«${esc(e.row.titel)}»</b> zeigt auf die Autorin <b>${e.row.autorin_id}</b>. Gibt es die drüben?`
+      : `<b>${esc(e.row.name)}</b> hat die Nummer <b>${e.row.id}</b>. Welches Buch zeigt darauf?`;
+    await sleep(700);
+
+    if(hatPartner){
+      for(const pr of e.paare){
+        const pid = e.seite === 'l' ? pr.a.id : pr.b.id;
+        zeileEl(e.seite === 'l' ? 'r' : 'l', pid).classList.add('treffer');
+      }
+      sagt.innerHTML += ` &nbsp;<span style="color:var(--green);font-weight:700">Ja – ${e.paare.length === 1 ? 'eine Zeile' : e.paare.length + ' Zeilen'} passt${e.paare.length === 1 ? '' : 'en'}.</span>`;
+    } else {
+      (e.seite === 'l' ? boxA : boxB).querySelectorAll('tbody tr').forEach(tr => tr.classList.add('leer'));
+      sagt.innerHTML += ` &nbsp;<span class="weg">Nein – keine passende Zeile.</span>
+        Beim <code>JOIN</code> wäre die Zeile jetzt <b>weg</b>. Hier bleibt sie – die fehlende Hälfte wird <b>NULL</b>.`;
+    }
+    await sleep(hatPartner ? 650 : 1100);
+
+    for(const pr of e.paare){
+      const tr = document.createElement('tr');
+      const fehlt = !pr.a || !pr.b;
+      tr.className = fehlt ? 'new' : 'keep';
+      tr.innerHTML = e.seite === 'l' ? cellsBuchBig(pr.b) + PLATZ_R : PLATZ_L + cellsAutBig(pr.a);
+      body.appendChild(tr);
+      const ziel = tr.querySelector('.platz');
+      const partnerVorhanden = e.seite === 'l' ? pr.a : pr.b;
+      const von = partnerVorhanden
+        ? zeileEl(e.seite === 'l' ? 'r' : 'l', e.seite === 'l' ? pr.a.id : pr.b.id)
+        : (e.seite === 'l' ? boxA : boxB);
+      const text = partnerVorhanden
+        ? (e.seite === 'l' ? `${pr.a.id} · ${esc(pr.a.name)}` : `${pr.b.id} · ${esc(pr.b.titel)}`)
+        : 'NULL';
+      await fly(von, ziel, text, partnerVorhanden ? '' : 'nullchip');
+      const zellen = e.seite === 'l' ? cellsAutBig(pr.a) : cellsBuchBig(pr.b);
+      tr.innerHTML = e.seite === 'l' ? cellsBuchBig(pr.b) + zellen : zellen + cellsAutBig(pr.a);
+      await sleep(120);
+    }
+
+    i++; laeuft = false;
+    if(i >= plan.length){
+      clearMarks();
+      boxB.classList.remove('fuehrt'); boxA.classList.remove('fuehrt');
+      boxB.querySelector('.lead').hidden = true; boxA.querySelector('.lead').hidden = true;
+      sagt.innerHTML += ` <b>&nbsp;· Alle Zeilen sind durch: ${body.children.length} Zeilen.</b>`;
+      fazit.innerHTML = fazitHtml;
+    }
+    stand();
+  }
+
+  $('#bNext').addEventListener('click', playRow);
+  $('#bAll').addEventListener('click', async ()=>{
+    while(i < plan.length){ await playRow(); await sleep(150); }
+  });
+  $('#bReset').addEventListener('click', ()=>{
+    if(laeuft) return;
+    i = 0; body.innerHTML = ''; fazit.innerHTML = ''; clearMarks();
+    boxB.classList.remove('fuehrt'); boxA.classList.remove('fuehrt');
+    boxB.querySelector('.lead').hidden = true; boxA.querySelector('.lead').hidden = true;
+    sagt.innerHTML = 'Klicken Sie auf <b>nächste Zeile</b> – dann geht die Datenbank Zeile für Zeile vor.';
+    stand();
+  });
+  stand();
+}
+
+/* ================================================================ Visualizer-Schritte */
 const STEPS = [
-{ key:'back', title:'Rückblick — was letzte Woche herauskam', venn:'inner', predict:null,
-  frage:'Welche Bücher gibt es, und von wem?',
-  sql:`<span class="dim">-- ohne Bedingung</span>\nSELECT * FROM buch, autorin;\n\n<span class="dim">-- mit Bedingung</span>\nSELECT * FROM buch <span class="hl ok">JOIN</span> autorin\n  ON buch.autorin_id = autorin.id;`,
-  intro:`<p class="step-text">Zwei Zahlen aus Lektion 7, die sitzen sollten: ohne <code>ON</code> wird jede Zeile mit jeder kombiniert,
-    mit <code>ON</code> bleiben die Paare übrig, die zusammengehören.</p>`,
-  body(){ return countline(12,'Zeilen ohne ON — 4 × 3, das Kreuzprodukt','red')
-      + countline(3,'Zeilen mit ON — das ist der JOIN','green')
-      + tbl(HEAD_BA, JOINED.map(x=>rowBA(x.b,x.a,'keep')).join(''))
-      + `<div class="callout red"><b>Aber:</b> <code>buch</code> hat <b>4</b> Zeilen, der <code>JOIN</code> liefert <b>3</b>.
-         Und von den drei Autorinnen taucht <b>Conrad</b> nirgends auf. Zwei Zeilen sind verschwunden — ohne Fehlermeldung.</div>`; },
+{ key:'back', title:'Rückblick – der JOIN von letzter Woche', venn:'inner', predict:null,
+  frage:'Welche Bücher haben eine Autorin im Katalog?',
+  sql:`SELECT * FROM buch <span class="hl ok">JOIN</span> autorin\n  ON buch.autorin_id = autorin.id;`,
+  intro:`<p class="step-text">Der <code>JOIN</code> behält nur, was <strong>zusammenpasst</strong>.
+    Von den vier Büchern bleiben drei übrig.</p>`,
+  body(){ return countline(3,'Zeilen – von 4 Büchern und 3 Autorinnen','navy')
+      + tbl(STAGE_HEAD, JOINED.map(x=>rowBA(x.b,x.a,'keep')).join(''))
+      + `<div class="callout red"><b>Zwei Zeilen sind verschwunden.</b>
+         «Stille Wasser» zeigt auf die Autorin 4, die es nicht gibt – und <b>Conrad</b> hat kein Buch.
+         Beide fehlen im Ergebnis, ohne Fehlermeldung.</div>
+         <p class="step-text">Heute holen wir sie zurück.</p>`; },
   mark(){ markSrc([4],[3],[],[]); } },
 
-{ key:'left', title:'Schritt 1 — LEFT JOIN: die linke Tabelle bleibt vollständig', venn:'left', predict:4,
-  frage:'Alle Bücher — und dazu die Autorin, <em>falls</em> es sie im Katalog gibt.',
+{ key:'left', title:'LEFT JOIN – die linke Tabelle bleibt vollständig', venn:'left', predict:4,
+  frage:'<em>Alle</em> Bücher – und dazu die Autorin, falls es sie gibt.',
   sql:`SELECT * FROM buch <span class="hl ok">LEFT JOIN</span> autorin\n  ON buch.autorin_id = autorin.id;`,
-  intro:`<p class="step-text">Die Frage hat sich geändert: Nicht mehr «welche Bücher haben eine Autorin», sondern
-    <strong>alle</strong> Bücher. Was dann in den Spalten von <code>autorin</code> steht, wenn es keinen Partner gibt,
-    entscheidet die Datenbank: sie schreibt <code>NULL</code>.</p>`,
-  body(){ return countline(4,'Zeilen — so viele wie buch hat','green')
-      + tbl(HEAD_BA, BUCH.map(b=>{ const a=byId(b.autorin_id); return rowBA(b,a,a?'keep':'new'); }).join(''))
-      + `<div class="callout green"><b>«Stille Wasser» ist zurück</b> — mit <code>NULL</code> rechts.
-         <code>LEFT JOIN</code> heisst: die Tabelle <em>links</em> vom <code>JOIN</code> bleibt vollständig, koste es, was es wolle.</div>
-         <p class="step-text muted">Conrad fehlt weiterhin. Sie steht rechts — und rechts wird nicht geschont.</p>`; },
+  intro:`<p class="step-text">Jetzt führt die <strong>linke</strong> Tabelle. Die Datenbank nimmt sich
+    <strong>jede Zeile von <code>buch</code> der Reihe nach vor</strong> und sucht drüben den Partner.
+    Klicken Sie sich Zeile für Zeile durch – und schauen Sie zu, was mit der vierten passiert.</p>`,
+  body(){ return stageHtml(); },
+  wire(root){ wireStage(root, 'left',
+    `<div class="callout green"><b>4 Zeilen – so viele wie <code>buch</code> hat.</b>
+       Kein Buch geht verloren. Wo kein Partner war, steht <code>NULL</code>:
+       nicht 0, nicht leer, sondern «hier gibt es nichts».</div>
+     <div class="callout blue"><b>Der ganze Trick in einem Satz:</b>
+       <code>LEFT JOIN</code> heisst – die Tabelle <b>links</b> vom <code>JOIN</code> kommt
+       vollständig durch, koste es, was es wolle.</div>`); },
   mark(){ markSrc([],[3],[4],[]); } },
 
-{ key:'isnull', title:'Schritt 2 — Das Muster «wer hat kein …»', venn:'lonly', predict:1,
-  frage:'Welche Bücher haben <em>keine</em> Autorin im Katalog?',
-  sql:`SELECT * FROM buch LEFT JOIN autorin\n  ON buch.autorin_id = autorin.id\n<span class="hl ok">WHERE autorin.id IS NULL;</span>`,
-  intro:`<p class="step-text">Jetzt kommt der Trick, der aus dem <code>LEFT JOIN</code> ein Werkzeug macht.
-    Die <code>NULL</code>-Zeilen sind genau die ohne Partner — man muss sie nur noch herausfiltern.</p>`,
-  body(){ const ohne = BUCH.filter(b=>!byId(b.autorin_id));
-    return countline(1,'Zeile — das gesuchte Buch','green')
-      + tbl(HEAD_BA, ohne.map(b=>rowBA(b,null,'new')).join(''))
-      + `<div class="callout blue"><b>Das Muster, das Sie sich merken:</b>
-         <code>LEFT JOIN</code> + <code>WHERE rechte_tabelle.id IS NULL</code> = «wer hat <b>kein</b> …».
-         Damit findet man auch die 8 Künstler ohne Album aus dem Knobelsatz.</div>
-         <p class="step-text">Warum <code>IS NULL</code> und nicht <code>= NULL</code>? Weil <code>NULL</code> kein Wert ist,
-         sondern das Fehlen eines Werts — das kennen Sie aus Lektion 3.</p>`; },
-  mark(){ markSrc([1,2,3],[1,2,3],[4],[]); } },
-
-{ key:'where', title:'Schritt 3 — Dieselbe Bedingung, zwei Orte, zwei Antworten', venn:'left', predict:4,
-  frage:'<em>Alle</em> Bücher — und dazu die Autorin, falls sie aus der Schweiz ist.',
-  sql:`<span class="dim">-- A: Bedingung im WHERE</span>\n... LEFT JOIN autorin ON buch.autorin_id = autorin.id\n<span class="hl">WHERE autorin.land = 'CH';</span>\n\n<span class="dim">-- B: Bedingung im ON</span>\n... LEFT JOIN autorin ON buch.autorin_id = autorin.id\n  <span class="hl ok">AND autorin.land = 'CH';</span>`,
-  intro:`<p class="step-text">Beide Abfragen laufen fehlerfrei. Sie liefern verschiedene Ergebnisse —
-    und <strong>welche davon richtig ist, entscheidet die Frage</strong>, nicht der Befehl.</p>`,
-  body(){
-    const A = BUCH.map(b=>byId(b.autorin_id)).map((a,i)=>({b:BUCH[i],a})).filter(x=>x.a && x.a.land==='CH');
-    const B = BUCH.map(b=>{ const a=byId(b.autorin_id); return {b, a:(a&&a.land==='CH')?a:null}; });
-    return `<div class="twocol">
-        <div><h3>A — im <code>WHERE</code> <span class="tag">3 Zeilen</span></h3>
-          ${tbl(HEAD_BA, A.map(x=>rowBA(x.b,x.a,'keep')).join(''))}
-          <p class="step-text muted" style="font-size:.9em">«Stille Wasser» ist wieder weg.</p></div>
-        <div><h3>B — im <code>ON</code> <span class="tag ok">4 Zeilen</span></h3>
-          ${tbl(HEAD_BA, B.map(x=>rowBA(x.b,x.a,x.a?'keep':'new')).join(''))}
-          <p class="step-text muted" style="font-size:.9em">Alle vier Bücher stehen da.</p></div>
-      </div>
-      <div class="callout warm"><b>Keine der beiden ist «der Fehler».</b>
-        A beantwortet «Welche Bücher sind von Schweizer Autorinnen?» — richtig, 3.
-        B beantwortet «Alle Bücher, und dazu die Autorin falls Schweizerin» — richtig, 4.
-        Gefragt war heute B.</div>
-      <div class="callout red"><b>Der Merksatz:</b> Eine Bedingung an die <b>rechte</b> Tabelle im <code>WHERE</code>
-        wirft die <code>NULL</code>-Zeilen weg — der <code>LEFT JOIN</code> wird stillschweigend zum <code>JOIN</code>.
-        Soll die linke Tabelle <b>vollständig</b> bleiben, gehört die Bedingung ins <code>ON</code>.</div>`; },
-  mark(){ markSrc([],[3],[4],[]); } },
-
-{ key:'count', title:'Schritt 4 — Zählen: COUNT(*) zählt auch das Nichts', venn:'left', predict:null,
-  frage:'Wie viele Bücher haben eine Autorin im Katalog?',
-  sql:`SELECT <span class="hl">COUNT(*)</span>,  <span class="hl ok">COUNT(autorin.id)</span>\nFROM buch LEFT JOIN autorin\n  ON buch.autorin_id = autorin.id;`,
-  intro:`<p class="step-text">Der <code>LEFT JOIN</code> liefert 4 Zeilen, aber eine davon ist rechts leer.
-    Was zählt <code>COUNT</code> — Zeilen oder Werte?</p>`,
-  body(){ return `<div class="twocol">
-      <div>${countline(4,'COUNT(*) — zählt Zeilen','red')}
-        <p class="step-text">Auch die Zeile, in der rechts nur <code>NULL</code> steht. Sie ist ja eine Zeile.</p></div>
-      <div>${countline(3,'COUNT(autorin.id) — zählt Werte','green')}
-        <p class="step-text"><code>NULL</code> ist kein Wert und wird nicht mitgezählt.</p></div>
-    </div>
-    <div class="callout red"><b>Die Falle:</b> Wer «wie viele hat jede?» mit <code>COUNT(*)</code> beantwortet,
-      gibt jedem, der <b>nichts</b> hat, eine <b>1</b>. Am Ende der Lektion sehen Sie genau das an Noah Steiner.</div>`; },
-  mark(){ markSrc([],[3],[4],[]); } },
-
-{ key:'right', title:'Schritt 5 — RIGHT JOIN: dasselbe, andere Seite', venn:'right', predict:4, reserve:true,
-  frage:'Alle Autorinnen — und dazu ihre Bücher, <em>falls</em> sie welche haben.',
-  sql:`SELECT * FROM buch <span class="hl ok">RIGHT JOIN</span> autorin\n  ON buch.autorin_id = autorin.id;\n\n<span class="dim">-- genau dasselbe, nur umgestellt:</span>\nSELECT * FROM autorin <span class="hl ok">LEFT JOIN</span> buch\n  ON buch.autorin_id = autorin.id;`,
-  intro:`<p class="step-text">Jetzt soll die <em>rechte</em> Tabelle vollständig bleiben. Dafür gibt es zwei Schreibweisen,
-    und sie liefern dieselben Zeilen.</p>`,
-  body(){ const rows = AUTORIN.flatMap(a=>{ const bs = BUCH.filter(b=>b.autorin_id===a.id);
-      return bs.length ? bs.map(b=>rowAB(a,b,'keep')) : [rowAB(a,null,'new')]; });
-    return countline(4,'Zeilen — drei Bücher plus Conrad ohne Buch','green')
-      + tbl(HEAD_AB, rows.join(''))
-      + `<div class="callout green"><b>Conrad ist zurück</b>, mit <code>NULL</code> statt eines Buchs.
-         «Stille Wasser» fehlt jetzt — es steht links, und links wird nicht geschont.</div>
-         <div class="callout blue"><b>Links und rechts sind Ihre Entscheidung</b>, keine Eigenschaft der Daten.
-         Wer <code>LEFT JOIN</code> kann, kann <code>RIGHT JOIN</code> auch — man vertauscht die beiden Tabellennamen.
-         Deshalb schreibt in der Praxis fast niemand <code>RIGHT JOIN</code>.</div>`; },
+{ key:'right', title:'RIGHT JOIN – dasselbe, nur führt die andere Seite', venn:'right', predict:4,
+  frage:'<em>Alle</em> Autorinnen – und dazu ihre Bücher, falls sie welche haben.',
+  sql:`SELECT * FROM buch <span class="hl ok">RIGHT JOIN</span> autorin\n  ON buch.autorin_id = autorin.id;`,
+  intro:`<p class="step-text">Genau dasselbe Verfahren – nur führt jetzt die <strong>rechte</strong> Tabelle.
+    Die Datenbank geht die Autorinnen durch und sucht deren Bücher. Beobachten Sie zwei Dinge:
+    <strong>Bühler</strong> hat zwei Bücher (das gibt zwei Zeilen), und <strong>Conrad</strong> hat keines.</p>`,
+  body(){ return stageHtml(); },
+  wire(root){ wireStage(root, 'right',
+    `<div class="callout green"><b>4 Zeilen – und Conrad ist zurück</b>, mit <code>NULL</code> statt eines Buchs.
+       Dafür fehlt jetzt «Stille Wasser»: das steht links, und links wird nicht geschont.</div>
+     <div class="callout blue"><b>Und deshalb braucht man ihn selten:</b>
+       <code>buch RIGHT JOIN autorin</code> ist dasselbe wie
+       <code>autorin LEFT JOIN buch</code>. Man vertauscht die beiden Tabellennamen – fertig.
+       Links und rechts sind <b>Ihre Entscheidung</b>, keine Eigenschaft der Daten.</div>`); },
   mark(){ markSrc([4],[],[],[3]); } },
 
-{ key:'full', title:'Schritt 6 — FULL OUTER JOIN: beide Seiten vollständig', venn:'full', predict:5,
-  frage:'Alles von beiden Seiten — jedes Buch und jede Autorin, mit Partner oder ohne.',
+{ key:'full', title:'FULL OUTER JOIN – beide Seiten vollständig', venn:'full', predict:5,
+  frage:'Alles von beiden Seiten – jedes Buch und jede Autorin, mit Partner oder ohne.',
   sql:`SELECT * FROM buch <span class="hl ok">FULL OUTER JOIN</span> autorin\n  ON buch.autorin_id = autorin.id;`,
-  intro:`<p class="step-text">Drei Paare, ein Buch ohne Autorin, eine Autorin ohne Buch.
-    Wie viele Zeilen sind das zusammen?</p>`,
-  body(){ const rows = JOINED.map(x=>rowBA(x.b,x.a,'keep'))
-      .concat(BUCH.filter(b=>!byId(b.autorin_id)).map(b=>rowBA(b,null,'new')))
-      .concat(AUTORIN.filter(a=>!BUCH.some(b=>b.autorin_id===a.id)).map(a=>rowBA(null,a,'new')));
-    return countline(5,'Zeilen — 3 Paare + 1 Buch ohne Autorin + 1 Autorin ohne Buch','green')
-      + tbl(HEAD_BA, rows.join(''))
-      + `<div class="callout blue"><code>FULL OUTER JOIN</code> ist gleichzeitig <code>LEFT</code> und <code>RIGHT</code>.
-         Er ist der ehrlichste Verbund — und der seltenste, weil man meistens genau weiss, welche Seite vollständig sein soll.</div>
-         <div class="callout warm"><b>Nicht die Zahl merken, sondern das Bild:</b> 12 · 3 · 4 · 4 · 5 sind fünf Antworten
-         auf fünf verschiedene <em>Fragen</em> an dieselben zwei Tabellen.</div>`; },
+  intro:`<p class="step-text">Und wenn <strong>beide</strong> Seiten vollständig bleiben sollen?
+    Dann läuft erst der <code>LEFT JOIN</code> durch – und danach kommen noch die Zeilen von rechts,
+    die dabei <strong>nie vorgekommen sind</strong>.</p>`,
+  body(){ return stageHtml(); },
+  wire(root){ wireStage(root, 'full',
+    `<div class="callout green"><b>5 Zeilen:</b> 3 Paare + 1 Buch ohne Autorin + 1 Autorin ohne Buch.
+       Zweimal <code>NULL</code> – einmal rechts, einmal links.</div>
+     <div class="callout warm"><b>Drei Varianten, ein Verfahren.</b>
+       Die Frage ist immer nur: <em>Welche Seite darf nichts verlieren?</em><br>
+       Links → <code>LEFT JOIN</code> &nbsp;·&nbsp; rechts → <code>RIGHT JOIN</code> &nbsp;·&nbsp;
+       beide → <code>FULL OUTER JOIN</code> &nbsp;·&nbsp; keine → <code>JOIN</code>.</div>`); },
   mark(){ markSrc([],[],[4],[3]); } },
 
-{ key:'end', title:'Die ganze Lektion in fünf Zahlen', venn:null, predict:null,
-  frage:'Fünf Fragen an dieselben zwei Tabellen — fünf Antworten.',
+{ key:'isnull', title:'Wozu das gut ist: «wer hat kein …»', venn:'lonly', predict:1,
+  frage:'Welche Bücher haben <em>keine</em> Autorin im Katalog?',
+  sql:`SELECT * FROM buch LEFT JOIN autorin\n  ON buch.autorin_id = autorin.id\n<span class="hl ok">WHERE autorin.id IS NULL;</span>`,
+  intro:`<p class="step-text">Jetzt kommt der Griff, der aus dem <code>LEFT JOIN</code> ein Werkzeug macht.
+    Die Zeilen mit <code>NULL</code> sind genau die <strong>ohne Partner</strong> – man muss sie nur noch
+    herausfiltern.</p>`,
+  body(){ const ohne = BUCH.filter(b=>!byId(b.autorin_id));
+    return countline(1,'Zeile – das gesuchte Buch','green')
+      + tbl(STAGE_HEAD, ohne.map(b=>rowBA(b,null,'new')).join(''))
+      + `<div class="callout blue"><b>Das Muster, das Sie sich merken:</b>
+         <code>LEFT JOIN</code> + <code>WHERE rechts.id IS NULL</code> = «wer hat <b>kein</b> …».
+         Erkennungszeichen in der Frage: «nicht», «nie», «ohne», «kein».</div>
+         <div class="callout green">Damit ist auch die Frage von heute Morgen beantwortet:
+         So findet man die <b>8 Künstler ohne Album</b>.</div>
+         <p class="step-text muted">Warum <code>IS NULL</code> und nicht <code>= NULL</code>?
+         Weil <code>NULL</code> kein Wert ist, sondern das Fehlen eines Werts – das kennen Sie aus Lektion 3.</p>`; },
+  mark(){ markSrc([1,2,3],[1,2,3],[4],[]); } },
+
+{ key:'end', title:'Vier Fragen an dieselben zwei Tabellen', venn:null, predict:null,
+  frage:'Nicht vier Befehle merken – eine Frage stellen.',
   sql:null,
-  intro:`<p class="step-text">Wer diese fünf Zahlen erklären kann, hat den heutigen Stoff.</p>`,
+  intro:`<p class="step-text">Die Tabellen waren immer dieselben. Nur die Frage war jedes Mal eine andere.</p>`,
   body(){ return `<div class="scroll"><table class="res">
-      <thead><tr><th>Frage</th><th>Abfrage</th><th>Zeilen</th></tr></thead><tbody>
-      <tr><td>Alle Kombinationen (niemand will das)</td><td><code>FROM buch, autorin</code></td><td><b>12</b></td></tr>
-      <tr><td>Welche Bücher haben eine Autorin?</td><td><code>JOIN … ON</code></td><td><b>3</b></td></tr>
-      <tr><td>Alle Bücher, Autorin falls vorhanden</td><td><code>LEFT JOIN</code></td><td><b>4</b></td></tr>
-      <tr><td>Welches Buch hat <em>keine</em> Autorin?</td><td><code>LEFT JOIN … IS NULL</code></td><td><b>1</b></td></tr>
-      <tr><td>Alle Autorinnen, Bücher falls vorhanden</td><td><code>RIGHT JOIN</code></td><td><b>4</b></td></tr>
-      <tr><td>Alles von beiden Seiten</td><td><code>FULL OUTER JOIN</code></td><td><b>5</b></td></tr>
+      <thead><tr><th>Welche Seite darf nichts verlieren?</th><th>Abfrage</th><th>Zeilen</th></tr></thead><tbody>
+      <tr><td>keine – nur Paare</td><td><code>JOIN</code></td><td><b>3</b></td></tr>
+      <tr><td>die linke (alle Bücher)</td><td><code>LEFT JOIN</code></td><td><b>4</b></td></tr>
+      <tr><td>die rechte (alle Autorinnen)</td><td><code>RIGHT JOIN</code></td><td><b>4</b></td></tr>
+      <tr><td>beide</td><td><code>FULL OUTER JOIN</code></td><td><b>5</b></td></tr>
+      <tr><td>die linke – und nur, wer <em>nichts</em> hat</td><td><code>LEFT JOIN … IS NULL</code></td><td><b>1</b></td></tr>
       </tbody></table></div>
-      <div class="callout red"><b>Die drei Fallen, die fehlerfrei laufen:</b> Bedingung an die rechte Tabelle
-        im <code>WHERE</code> statt im <code>ON</code> · <code>COUNT(*)</code> statt <code>COUNT(spalte)</code> ·
-        <code>JOIN</code> statt <code>LEFT JOIN</code>. Station C übt genau diese drei.</div>
-      <div class="callout green">Weiter zu <b>Teil 2 · Stationen</b> — dort ist die Bibliothek grösser,
-        und Sie schreiben selbst.</div>`; },
+      <div class="callout green">Weiter zu <b>Teil 2 · Stationen</b> – dort ist die Bibliothek grösser,
+      und Sie schreiben selbst.</div>`; },
   mark(){ markSrc([],[],[],[]); } },
 ];
 
@@ -820,8 +991,10 @@ function go(i){
 }
 function showResult(){
   const out = document.getElementById('out');
-  out.innerHTML = STEPS[cur].body ? STEPS[cur].body() : '';
-  reveal(out, 80);
+  const s = STEPS[cur];
+  out.innerHTML = s.body ? s.body() : '';
+  if(s.wire) s.wire(out);          // Schritte mit Bühne steuern sich selbst
+  else reveal(out, 80);
 }
 $prev.addEventListener('click',()=>go(cur-1));
 $next.addEventListener('click',()=>go(cur+1));
