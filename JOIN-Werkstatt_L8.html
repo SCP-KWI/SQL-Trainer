@@ -149,6 +149,8 @@ main.stat{padding:18px 24px 60px;max-width:1080px}
   color:var(--navy);cursor:pointer}
 .task button.primary{background:var(--navy);color:#fff}
 .task button:disabled{opacity:.4;cursor:default}
+.task button.locked{opacity:.5;border-style:dashed}
+.task button.locked::before{content:"🔒 ";font-size:.9em}
 .task .hintbox{margin-top:9px}
 .expect{font-size:.82em;color:var(--muted);font-family:var(--mono)}
 
@@ -976,7 +978,21 @@ const EXPECT = {};                       // id -> normalisiertes Sollergebnis
 
 let progress = {};
 try{ progress = JSON.parse(localStorage.getItem('l8.progress')||'{}'); }catch(e){ progress = {}; }
-const st = id => (progress[id] = progress[id] || {solved:false, tries:0, draft:null});
+const st = id => (progress[id] = progress[id] || {solved:false, tries:0, tipp:false, draft:null});
+
+/* Wann gibt die Werkstatt die Lösung frei? Nach drei ausgeführten Versuchen –
+   oder nach dem Tipp plus einem Versuch. Gelöste Aufgaben immer. */
+const solFrei  = p => p.solved || p.tries >= 3 || (p.tipp && p.tries >= 1);
+const solRest  = p => p.tipp ? Math.max(0, 1 - p.tries) : Math.max(0, 3 - p.tries);
+function setSolBtn(box, t){
+  const p = st(t.id), btn = box.querySelector('[data-act=sol]');
+  if(!btn) return;
+  const frei = solFrei(p), n = solRest(p);
+  btn.classList.toggle('locked', !frei);
+  btn.title = frei
+    ? 'Eine mögliche Formulierung – Ihre darf anders aussehen.'
+    : `Noch ${n} Versuch${n === 1 ? '' : 'e'}` + (p.tipp ? '.' : ', oder den Tipp lesen und danach einmal probieren.');
+}
 function save(){ try{ localStorage.setItem('l8.progress', JSON.stringify(progress)); }catch(e){} }
 
 function norm(res){
@@ -1022,15 +1038,17 @@ function querly(mood, html){
 /* ---------------------------------------------------------------- Prüfen */
 function check(t, sql, box){
   const p = st(t.id);
-  p.tries++; p.draft = sql; save();
+  p.draft = sql; save();
   const fb = box.querySelector('.fbox'), out = box.querySelector('.rbox');
   const r = run(sql);
-  if(!r.ok){
+  if(!r.ok){               // Syntaxfehler zählen nicht als Versuch – ein Tippfehler
+                           // soll niemandem die Lösung wegnehmen
     out.innerHTML = '';
     fb.innerHTML = querly('err', `<b>Da klemmt die Syntax.</b><br><code>${esc(r.err)}</code><br>
       <span class="muted">Lesen Sie die Meldung — sie sagt meistens, an welcher Stelle.</span>`);
     return;
   }
+  p.tries++; save(); setSolBtn(box, t);
   out.innerHTML = resultTable(r.res);
   const soll = EXPECT[t.id], ist = norm(r.res);
   const nSoll = EXPECT[t.id+':n'], nIst = rowCount(r.res);
@@ -1043,7 +1061,7 @@ function check(t, sql, box){
     fb.innerHTML = querly('ok', `<b>Stimmt.</b> ${t.note ? t.note : ''}`);
     box.classList.add('solved');
     if(!box.querySelector('.tick')) box.querySelector('h3').insertAdjacentHTML('beforeend','<span class="tick">✔</span>');
-    box.querySelector('[data-act=sol]').disabled = false;
+    setSolBtn(box, t);
     renderNav(); updateFinish();
     return;
   }
@@ -1087,7 +1105,7 @@ function taskBox(t){
     <div class="btns">
       <button class="primary" data-act="run">Ausführen und prüfen</button>
       <button data-act="hint">Tipp</button>
-      <button data-act="sol" ${p.solved?'':'disabled'} title="${p.solved?'':'Erst lösen — oder zweimal den Tipp lesen.'}">Lösung</button>
+      <button data-act="sol" class="${solFrei(p)?'':'locked'}">Lösung</button>
       <button data-act="clear">Zurücksetzen</button>
     </div>
     <div class="hintbox"></div>
@@ -1113,11 +1131,25 @@ function showStation(key){
     box.querySelector('[data-act=run]').addEventListener('click', ()=>check(t, ta.value, box));
     ta.addEventListener('keydown', e=>{ if((e.ctrlKey||e.metaKey) && e.key==='Enter') check(t, ta.value, box); });
     box.querySelector('[data-act=hint]').addEventListener('click', ()=>{
+      const p = st(t.id);
+      p.tipp = true; save(); setSolBtn(box, t);
       box.querySelector('.hintbox').innerHTML = querly('neutral', `<b>Tipp.</b> ${t.hint}`);
     });
     box.querySelector('[data-act=sol]').addEventListener('click', ()=>{
-      box.querySelector('.hintbox').innerHTML = `<pre class="sql">${esc(t.sol)}</pre>`;
+      const p = st(t.id);
+      if(!solFrei(p)){
+        const n = solRest(p);
+        box.querySelector('.hintbox').innerHTML = querly('neutral',
+          `<b>Noch nicht.</b> Probieren Sie es zuerst selbst — noch <b>${n} Versuch${n===1?'':'e'}</b>,
+           dann gebe ich die Lösung frei.` +
+          (p.tipp ? '' : ' Schneller geht es mit dem <b>Tipp</b>: lesen, einmal probieren, dann ist sie frei.'));
+        return;
+      }
+      box.querySelector('.hintbox').innerHTML =
+        `<pre class="sql">${esc(t.sol)}</pre>` +
+        `<p class="expect">Eine mögliche Formulierung. Ihre darf anders aussehen – geprüft wird das Ergebnis.</p>`;
     });
+    setSolBtn(box, t);
     box.querySelector('[data-act=clear]').addEventListener('click', ()=>{
       ta.value = t.skel || ''; st(t.id).draft = ta.value; save();
       box.querySelector('.fbox').innerHTML = ''; box.querySelector('.rbox').innerHTML = '';
