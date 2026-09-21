@@ -553,6 +553,8 @@ table.src.big td{padding:6px 8px;transition:background .25s}
 table.src.big tr.aktiv td{background:#dbe7f2;font-weight:700}
 table.src.big tr.treffer td{background:var(--keep)}
 table.src.big tr.leer td{background:var(--drop)}
+table.src.big tr.weg td,table.src.big tr.weg.aktiv td{background:var(--drop);opacity:.45;
+  text-decoration:line-through;font-weight:400}
 .merge{align-self:center;flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;
   color:var(--blue);font-size:1.35em;line-height:1;padding:0 4px}
 .merge span{display:block}
@@ -662,6 +664,11 @@ function markSrc(goneB, goneA, markB, markA){
 /* Welche Zeile führt, und welche Paare entstehen dabei? */
 function planFor(modus){
   const plan = [];
+  if(modus === 'inner'){          // ohne Partner entsteht gar keine Zeile
+    for(const b of BUCH){
+      plan.push({seite:'l', row:b, paare: AUTORIN.filter(a => a.id === b.autorin_id).map(a=>({b,a}))});
+    }
+  }
   if(modus === 'left' || modus === 'full'){
     for(const b of BUCH){
       const as = AUTORIN.filter(a => a.id === b.autorin_id);
@@ -781,6 +788,11 @@ function wireStage(root, modus, fazitHtml){
         zeileEl(e.seite === 'l' ? 'r' : 'l', pid).classList.add('treffer');
       }
       sagt.innerHTML += ` &nbsp;<span style="color:var(--green);font-weight:700">Ja – ${e.paare.length === 1 ? 'eine Zeile' : e.paare.length + ' Zeilen'} passt${e.paare.length === 1 ? '' : 'en'}.</span>`;
+    } else if(modus === 'inner'){
+      (e.seite === 'l' ? boxA : boxB).querySelectorAll('tbody tr').forEach(tr => tr.classList.add('leer'));
+      fuehr.classList.add('weg');
+      sagt.innerHTML += ` &nbsp;<span class="weg">Nein – keine passende Zeile.</span>
+        Der <code>JOIN</code> behält nur Paare: <b>diese Zeile fällt weg</b> und steht im Ergebnis gar nicht.`;
     } else {
       (e.seite === 'l' ? boxA : boxB).querySelectorAll('tbody tr').forEach(tr => tr.classList.add('leer'));
       sagt.innerHTML += ` &nbsp;<span class="weg">Nein – keine passende Zeile.</span>
@@ -825,7 +837,8 @@ function wireStage(root, modus, fazitHtml){
   });
   $('#bReset').addEventListener('click', ()=>{
     if(laeuft) return;
-    i = 0; body.innerHTML = ''; fazit.innerHTML = ''; clearMarks();
+    i = 0; body.innerHTML = ''; fazit.innerHTML = '';
+    root.querySelectorAll('.src.big tr').forEach(tr => tr.classList.remove('aktiv','treffer','leer','weg'));
     boxB.classList.remove('fuehrt'); boxA.classList.remove('fuehrt');
     boxB.querySelector('.lead').hidden = true; boxA.querySelector('.lead').hidden = true;
     sagt.innerHTML = 'Klicken Sie auf <b>nächste Zeile</b> – dann geht die Datenbank Zeile für Zeile vor.';
@@ -839,14 +852,17 @@ const STEPS = [
 { key:'back', title:'Rückblick – der JOIN von letzter Woche', venn:'inner', predict:null,
   frage:'Welche Bücher haben eine Autorin im Katalog?',
   sql:`SELECT * FROM buch <span class="hl ok">JOIN</span> autorin\n  ON buch.autorin_id = autorin.id;`,
-  intro:`<p class="step-text">Der <code>JOIN</code> behält nur, was <strong>zusammenpasst</strong>.
-    Von den vier Büchern bleiben drei übrig.</p>`,
-  body(){ return countline(3,'Zeilen – von 4 Büchern und 3 Autorinnen','navy')
-      + tbl(STAGE_HEAD, JOINED.map(x=>rowBA(x.b,x.a,'keep')).join(''))
-      + `<div class="callout red"><b>Zwei Zeilen sind verschwunden.</b>
-         «Stille Wasser» zeigt auf die Autorin 4, die es nicht gibt – und <b>Conrad</b> hat kein Buch.
-         Beide fehlen im Ergebnis, ohne Fehlermeldung.</div>
-         <p class="step-text">Heute holen wir sie zurück.</p>`; },
+  intro:`<p class="step-text">Zuerst noch einmal das von letzter Woche – und diesmal <strong>in Zeitlupe</strong>.
+    Die Datenbank nimmt sich <strong>jede Zeile von <code>buch</code> der Reihe nach vor</strong> und schaut drüben nach,
+    ob es die passende Nummer gibt. Klicken Sie sich durch und achten Sie darauf, was mit der <strong>vierten</strong> Zeile passiert.</p>`,
+  body(){ return stageHtml(); },
+  wire(root){ wireStage(root, 'inner',
+    `<div class="callout red"><b>3 Zeilen – aus 4 Büchern.</b>
+       «Stille Wasser» ist <b>weg</b>: keine Fehlermeldung, kein <code>NULL</code>, einfach nicht da.
+       Und <b>Conrad</b> kam überhaupt nie vor – sie hat kein Buch, also hat keine Zeile sie je gesucht.</div>
+     <div class="callout warm"><b>Zwei Zeilen fehlen, und man sieht es dem Ergebnis nicht an.</b>
+       Genau das ändern wir jetzt: mit demselben Verfahren, aber einer anderen Regel dafür,
+       wer im Ergebnis bleiben darf.</div>`); },
   mark(){ markSrc([4],[3],[],[]); } },
 
 { key:'left', title:'LEFT JOIN – die linke Tabelle bleibt vollständig', venn:'left', predict:4,
